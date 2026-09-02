@@ -2,6 +2,7 @@
 src/application/services/visual_synthesis_service.py — 17대 텐서 × 70대 유전자 비주얼 프롬프트 컴파일 및 실시간 렌더링 서비스
 """
 
+import hashlib
 import time
 import urllib.parse
 from typing import Dict, List, Optional, Tuple
@@ -80,13 +81,14 @@ class VisualSynthesisService:
     def generate_pollinations_url(
         self, character: Character, engine: str = "flux-anime", width: int = 832, height: int = 1216
     ) -> str:
-        """Pollinations.ai 무료 실시간 렌더링 URL 생성 (시드 고정으로 외형 보존)"""
+        """Pollinations.ai 실시간 렌더링 URL 생성 (SHA-256 캐릭터 고유 시드 완전 고정)"""
         prose = self.compile_flux_cinematic_prose(character)
         encoded_prompt = urllib.parse.quote(prose)
         encoded_neg = urllib.parse.quote(self.NEGATIVE_PROMPT)
 
-        # 시드 해시 기반 정수 시드 산출 (외형 일관성 보장)
-        seed_int = abs(hash(character.seed_hash + character.stage.value)) % 10000000
+        # 캐릭터 시드 해시 기반 불변 SHA-256 고정 시드 산출 (캐릭터 얼굴/외형 영구 일관성 보장)
+        seed_hash_str = character.seed_hash
+        seed_int = int(hashlib.sha256(seed_hash_str.encode("utf-8")).hexdigest()[:8], 16) % 10000000
         valid_model = engine if engine in ["flux-anime", "flux", "sana", "turbo"] else "flux-anime"
 
         return f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model={valid_model}&seed={seed_int}&negative={encoded_neg}&nologo=true&enhance=true"
@@ -98,4 +100,4 @@ class VisualSynthesisService:
             "CONTROLLER": "ornate arcane library background, floating magic circles, deep violet crystal glow",
             "DEPRIVED": "ornate dark Victorian mansion bedroom background, antique chandelier, moody shadow",
         }
-        return armor_bg.get(character.armor_type.name, "ornate dark chamber background")
+        return armor_bg.get(character.armor_type.value, "ornate dark fantasy luxury room background")

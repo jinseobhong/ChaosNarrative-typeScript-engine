@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple
 from src.application.dtos import TurnExecutionRequest, TurnExecutionResponse, UndoResponse
 from src.application.services.action_parser_service import ActionParserService
 from src.application.services.character_workshop_service import CharacterWorkshopService
-from src.domain.character.enums import PressureStage
+from src.domain.character.enums import PressureStage, LowenArmor
 from src.domain.character.models import Character
 from src.domain.llm import LLMClient
 from src.domain.narrative.models import TurnSnapshot
@@ -59,6 +59,7 @@ class NarrativeOrchestratorService:
             f"Turn Step: 1 (Opening Prologue)\n"
             f"Scene: 플레이어와 {character.name}의 첫 대면 밀실 프롤로그\n"
             f"Current Pressure Stage: {character.stage.value}\n"
+            f"Armor Type: {character.armor_type.value}\n"
             f"Ego: 100.0/100.0"
         )
         prose = self.llm_client.generate_narrative(
@@ -84,7 +85,7 @@ class NarrativeOrchestratorService:
             character_data=char_data_dict,
             last_action="[OPENING SCENE]",
             narrative_prose=prose,
-            delta_logs=("[OPENING] 밀실 롤플레이 세션이 시작되었습니다.",),
+            delta_logs=(f"[OPENING] {character.name}과의 밀실 롤플레이 세션이 개시되었습니다.",),
             dynamic_choices=tuple(dynamic_choices)
         )
         self.session_repo.record_turn(session_id, initial_snapshot)
@@ -99,7 +100,7 @@ class NarrativeOrchestratorService:
             active_spotlights=(),
             tensor_levels=character.tensor_matrix.levels,
             narrative_prose=prose,
-            delta_logs=("[OPENING] 밀실 롤플레이 세션이 시작되었습니다.",),
+            delta_logs=(f"[OPENING] {character.name}과의 밀실 롤플레이 세션이 개시되었습니다.",),
             dynamic_choices=tuple(dynamic_choices)
         )
 
@@ -136,8 +137,11 @@ class NarrativeOrchestratorService:
             temperature=0.85
         )
 
-        # 3+1 타겟팅 동적 선택지 생성
-        dynamic_choices = self._generate_dynamic_choices(updated_character)
+        # 3+1 타겟팅 동적 선택지 생성 (하드코딩 제거: 현재 에고 및 텐서 스포트라이트 기반 동적 합성)
+        dynamic_choices = self._generate_dynamic_choices(
+            character=updated_character,
+            active_spotlights=updated_character.tensor_matrix.active_spotlights
+        )
 
         # 턴 스냅샷 생성 및 저장소 적재
         char_data_dict = {
@@ -232,10 +236,72 @@ class NarrativeOrchestratorService:
         self.character_repo.save(new_char)
         return new_char
 
-    def _generate_dynamic_choices(self, character: Character) -> List[Dict[str, str]]:
+    def _generate_dynamic_choices(
+        self, character: Character, active_spotlights: Tuple[str, ...] = ()
+    ) -> List[Dict[str, str]]:
+        """하드코딩을 배제하고 캐릭터의 갑옷 유형, 에고 붕괴 단계, 활성 텐서에 기반하여 4대 차원 동적 생성"""
+        name = character.name
+        stage = character.stage
+
+        # 1. DEVOTION (위로/애착/보호)
+        if stage == PressureStage.STAGE_1_ELASTIC:
+            devotion_label = "조심스러운 손길로 경계 완화하기"
+            devotion_action = f'*"{name}, 떨 필요 없어." 라며 어깨에 얹힌 차가운 손을 가만히 감싸 쥔다*'
+        elif stage == PressureStage.STAGE_2_OVERLOAD:
+            devotion_label = "달아오른 쇄골과 체온 감싸 안기"
+            devotion_action = f'*붉게 달아오른 {name}의 쇄골선을 손끝으로 어루만지며 떨리는 숨결을 가라앉힌다*'
+        elif stage == PressureStage.STAGE_3_PLASTIC:
+            devotion_label = "눈물 고인 눈망울을 닦아주며 이마 맞대기"
+            devotion_action = f'*"{name}, 이제 괜찮아." 라며 흐트러진 머릿결을 넘겨주고 이마에 따스한 숨을 전한다*'
+        else:
+            devotion_label = "완전히 허물어진 그녀를 깊이 품에 안기"
+            devotion_action = f'*전적으로 체온을 기대어오는 {name}을 품에 단단히 가두고 등을 쓸어내린다*'
+
+        # 2. SUBJUGATION (지배/압박/구속)
+        if stage == PressureStage.STAGE_1_ELASTIC:
+            subjugation_label = "초커를 쥔 채 도도한 턱 치켜올리기"
+            subjugation_action = f'*"{name}, 시선 피하지 마." 라며 목덜미의 초커를 강하게 쥐어 턱을 젖힌다*'
+        elif stage == PressureStage.STAGE_2_OVERLOAD:
+            subjugation_label = "코르셋을 조이며 신체적 종속 각인"
+            subjugation_action = f'*가쁘게 오르내리는 {name}의 코르셋 끈을 강하게 잡아당겨 숨을 턱 끝까지 억누른다*'
+        elif stage == PressureStage.STAGE_3_PLASTIC:
+            subjugation_label = "힘 풀린 무릎을 짓누르며 굴복 요구"
+            subjugation_action = f'*"{name}, 누구의 발치에 있는지 잊었나?" 라며 떨리는 어깨를 바닥으로 짓누른다*'
+        else:
+            subjugation_label = "완전한 지배자의 낙인을 각인하기"
+            subjugation_action = f'*의식마저 흐려진 {name}의 목덜미를 깊게 베어 물며 절대 복종을 명한다*'
+
+        # 3. SEDUCTION (유혹/밀착/체온)
+        if stage == PressureStage.STAGE_1_ELASTIC:
+            seduction_label = "귓가에 달콤한 숨결을 불어넣기"
+            seduction_action = f'*귓불에 스치듯 입술을 대고 "정말 이대로 버틸 수 있을까?" 라며 낮게 속삭인다*'
+        elif stage == PressureStage.STAGE_2_OVERLOAD:
+            seduction_label = "목선과 쇄골을 따라 입술 미끄러뜨리기"
+            seduction_action = f'*맥박이 거세게 뛰는 {name}의 목선을 따라 천천히 뜨거운 입술을 묻는다*'
+        elif stage == PressureStage.STAGE_3_PLASTIC:
+            seduction_label = "떨리는 입술을 겹치며 체온 융합하기"
+            seduction_action = f'*반쯤 벌어진 {name}의 입술을 깊이 머금으며 거친 호흡을 남김없이 들이마신다*'
+        else:
+            seduction_label = "이성의 마지막 한 방울까지 삼켜버리기"
+            seduction_action = f'*깊은 도취에 빠진 {name}의 혀를 옭아매며 감미로운 쾌락의 심연으로 이끈다*'
+
+        # 4. SUSPENSION (침묵/관망/방치)
+        if stage == PressureStage.STAGE_1_ELASTIC:
+            suspension_label = "한 걸음 물러나 차갑게 응시하기"
+            suspension_action = f'*아무 말 없이 손을 떼고 뒤로 물러서서 오만하게 떨리는 눈빛을 관망한다*'
+        elif stage == PressureStage.STAGE_2_OVERLOAD:
+            suspension_label = "손길을 멈추고 달아오른 전신을 방치하기"
+            suspension_action = f'*접촉을 거두고 차가운 눈빛으로 {name}의 헐떡이는 흉곽과 목선을 응시한다*'
+        elif stage == PressureStage.STAGE_3_PLASTIC:
+            suspension_label = "애타게 손길을 갈망하는 모습을 관망하기"
+            suspension_action = f'*스스로 손길을 찾아 헤매는 {name}의 초점 잃은 시선을 침묵 속에 굽어본다*'
+        else:
+            suspension_label = "먼저 매달려오는 모습을 서늘하게 내려다보기"
+            suspension_action = f'*옷자락을 쥐고 애원해오는 {name}을 무표정하게 내려다보며 침묵으로 압도한다*'
+
         return [
-            {"type": "DEVOTION", "label": "따스하게 안아주며 속삭이기", "action": f'*"{character.name}, 이제 다 괜찮아." 라며 어깨를 살며시 감싸 안는다*'},
-            {"type": "SUBJUGATION", "label": "초커를 쥔 채 강하게 압박하기", "action": f'*"{character.name}, 꿇어." 라며 목덜미의 초커를 강하게 쥔다*'},
-            {"type": "SEDUCTION", "label": "귓가에 입술을 대고 달콤하게 유혹하기", "action": '*귓가에 조심스레 입술을 스치며 달콤한 숨을 불어넣는다*'},
-            {"type": "SUSPENSION", "label": "한 걸음 물러나 싸늘하게 응시하기", "action": '*아무 말 없이 뒤로 한 걸음 물러서서 떨리는 전신을 관망한다*'},
+            {"type": "DEVOTION", "label": devotion_label, "action": devotion_action},
+            {"type": "SUBJUGATION", "label": subjugation_label, "action": subjugation_action},
+            {"type": "SEDUCTION", "label": seduction_label, "action": seduction_action},
+            {"type": "SUSPENSION", "label": suspension_label, "action": suspension_action},
         ]
