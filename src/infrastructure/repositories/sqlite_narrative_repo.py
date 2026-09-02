@@ -24,6 +24,15 @@ class SqliteNarrativeSessionRepository(NarrativeSessionRepository):
         with self.db_manager.transaction() as conn:
             conn.execute(sql, (session_id, character_seed_hash))
 
+    def get_session_seed(self, session_id: str) -> Optional[str]:
+        sql = "SELECT character_seed_hash FROM narrative_sessions WHERE session_id = ?;"
+        with self.db_manager.connection() as conn:
+            cur = conn.execute(sql, (session_id,))
+            row = cur.fetchone()
+            if row:
+                return row["character_seed_hash"]
+            return None
+
     def record_turn(self, session_id: str, snapshot: TurnSnapshot) -> None:
         char_json = json.dumps(snapshot.character_data, ensure_ascii=False)
         delta_json = json.dumps(list(snapshot.delta_logs), ensure_ascii=False)

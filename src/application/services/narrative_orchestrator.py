@@ -1,28 +1,35 @@
 """
-src/application/services/narrative_orchestrator.py — 서사 턴 조율, 상태 전이 및 롤백 오케스트레이터
+src/application/services/narrative_orchestrator.py — 서사 턴 조율, 상태 전이 및 Gemini LLM 연동 오케스트레이터
 """
 
 from typing import Dict, List, Optional, Tuple
 from src.application.dtos import TurnExecutionRequest, TurnExecutionResponse, UndoResponse
 from src.application.services.action_parser_service import ActionParserService
+from src.application.services.character_workshop_service import CharacterWorkshopService
 from src.domain.character.enums import PressureStage
 from src.domain.character.models import Character
+from src.domain.llm import LLMClient
 from src.domain.narrative.models import TurnSnapshot
 from src.domain.repositories import CharacterRepository, NarrativeSessionRepository
+from src.infrastructure.llm.gemini_llm_client import GeminiLLMClient
 
 
 class NarrativeOrchestratorService:
-    """서사 세션의 턴 진행, 도메인 상태 전이, 응답 생성 및 롤백을 조율하는 유스케이스 서비스"""
+    """서사 세션의 턴 진행, 도메인 상태 전이, LLM 서사 생성 및 롤백을 조율하는 유스케이스 서비스"""
 
     def __init__(
         self,
         character_repo: CharacterRepository,
         session_repo: NarrativeSessionRepository,
-        parser_service: ActionParserService
+        parser_service: ActionParserService,
+        workshop_service: Optional[CharacterWorkshopService] = None,
+        llm_client: Optional[LLMClient] = None
     ) -> None:
         self.character_repo = character_repo
         self.session_repo = session_repo
         self.parser_service = parser_service
+        self.workshop_service = workshop_service or CharacterWorkshopService(character_repo)
+        self.llm_client = llm_client or GeminiLLMClient()
 
     def execute_turn(self, request: TurnExecutionRequest) -> TurnExecutionResponse:
         """한 턴의 상호작용을 실행하고 새로운 상태 스냅샷을 영구 저장한다."""
@@ -30,7 +37,7 @@ class NarrativeOrchestratorService:
         latest_snapshot = self.session_repo.get_latest_turn(request.session_id)
         current_step = (latest_snapshot.step + 1) if latest_snapshot else 1
 
-        # 2. 캐릭터 조회 (최신 스냅샷 데이터 기반 복원 또는 기본 캐릭터 조회)
+        # 2. 캐릭터 조회
         character = self._load_current_character(request.session_id, latest_snapshot)
 
         # 3. 자연어 입력 파싱
@@ -42,14 +49,31 @@ class NarrativeOrchestratorService:
             intensity=action_frame.intensity
         )
 
-        # 5. 서사 문장 및 3+1 동적 선택지 생성
-        narrative_prose = self._synthesize_prose(updated_character, action_frame)
+        # 5. 마스터 시스템 프롬프트 컴파일 및 LLM 서사 산문 생성
+        master_sys_prompt = self.workshop_service.export_master_prompt(updated_character)
+        user_state_context = (
+            f"Turn Step: {current_step}\n"
+            f"User Action & Dialogue: {request.user_input}\n"
+            f"Parsed Speech Act: {action_frame.speech_act.value}\n"
+            f"Current Pressure Stage: {updated_character.stage.value}\n"
+            f"Ego Resilience: {updated_character.ego_resilience:.1f}/100.0\n"
+            f"Stimulated Tensors: {', '.join(delta_logs)}"
+        )
+        narrative_prose = self.llm_client.generate_narrative(
+            system_prompt=master_sys_prompt,
+            user_prompt=user_state_context,
+            temperature=0.85
+        )
+
+        # 6. 3+1 타겟팅 동적 선택지 생성
         dynamic_choices = self._generate_dynamic_choices(updated_character)
 
-        # 6. 턴 스냅샷 생성 및 저장소 적재
+        # 7. 턴 스냅샷 생성 및 저장소 적재
         char_data_dict = {
             "seed_hash": updated_character.seed_hash,
             "name": updated_character.name,
+            "title": updated_character.title,
+            "faction": updated_character.faction,
             "armor_type": updated_character.armor_type.value,
             "relational_vector": updated_character.relational_vector.value,
             "stage": updated_character.stage.value,
@@ -114,27 +138,21 @@ class NarrativeOrchestratorService:
             char = self.character_repo.get_by_seed(seed_hash)
             if char:
                 return char
-        # 세션 최초 시작 시 기본 캐릭터 조회 또는 생성
+
+        # 세션에 바인딩된 캐릭터 시드 조회
+        session_seed = self.session_repo.get_session_seed(session_id)
+        if session_seed:
+            char = self.character_repo.get_by_seed(session_seed)
+            if char:
+                return char
+
+        # 세션 시작 시 기본 캐릭터 조회 또는 제1황녀 릴리스 생성
         all_chars = self.character_repo.list_all()
         if all_chars:
             return all_chars[0]
-        new_char = Character.create_new(seed_hash="DEFAULT_HEROINE", name="아이라 (Aira)")
+        new_char = Character.create_lilith()
         self.character_repo.save(new_char)
         return new_char
-
-    def _synthesize_prose(self, character: Character, action: ActionFrame) -> str:
-        stage = character.stage
-        name = character.name
-        primary = action.primary_tensor
-
-        if stage == PressureStage.STAGE_1_ELASTIC:
-            return f"{name}는 차가운 눈빛을 유지하려 애쓰며 당신의 손길에 팽팽하게 맞섭니다. 하지만 {primary} 부위에 미세한 긴장 파동이 일렁입니다."
-        elif stage == PressureStage.STAGE_2_OVERLOAD:
-            return f"{name}의 호흡이 거칠어지며 목선이 가늘게 떨립니다. 가슴을 짓누르는 감각 과부하에 입술 사이로 억눌린 숨이 새어 나옵니다."
-        elif stage == PressureStage.STAGE_3_PLASTIC:
-            return f"{name}의 무릎이 힘없이 꺾이며 당신의 품으로 무너져 내립니다. 오만했던 눈빛은 허물어지고 체온이 뜨겁게 달아오릅니다."
-        else:
-            return f"{name}는 완전히 굴종하여 당신의 숨결에 깊숙이 안착합니다. 자발적인 안식과 쾌락의 파도 속에서 온몸의 텐서가 황홀하게 공명합니다."
 
     def _generate_dynamic_choices(self, character: Character) -> List[Dict[str, str]]:
         return [

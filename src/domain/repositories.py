@@ -30,6 +30,10 @@ class NarrativeSessionRepository(Protocol):
         """신규 서사 세션 생성"""
         ...
 
+    def get_session_seed(self, session_id: str) -> Optional[str]:
+        """세션에 바인딩된 캐릭터 시드 해시 조회"""
+        ...
+
     def record_turn(self, session_id: str, snapshot: TurnSnapshot) -> None:
         """새로운 턴 스냅샷 영구 저장"""
         ...

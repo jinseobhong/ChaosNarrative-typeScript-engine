@@ -14,10 +14,11 @@
 | 컴포넌트 | 담당 모듈 경로 | 상태 마커 | 최근 검증 결과 |
 | :--- | :--- | :---: | :--- |
 | **17대 텐서 매트릭스** | `src/domain/character/tensor.py` | `DONE` | 17개 텐서 & 운동 연쇄 전이 검증 완료 |
-| **로웬 갑주 & 압력 궤적**| `src/domain/character/enums.py` | `DONE` | 5대 갑주 & 4단계 궤적 정의 완료 |
-| **캐릭터 불변 모델** | `src/domain/character/models.py` | `DONE` | `@dataclass(frozen=True)` 불변 모델 검증 |
+| **4대 아키타입 & 모델**| `src/domain/character/models.py` | `DONE` | 릴리스/에이라/세라피나/실비아 불변 팩토리 |
 | **화행 및 서사 모델** | `src/domain/narrative/` | `DONE` | 7대 화행 & 롤백 스냅샷 정의 완료 |
 | **SQLite 영구 저장소** | `src/infrastructure/` | `DONE` | WAL 모드 & 턴 롤백 스택 검증 완료 |
 | **화행 파서 서비스** | `src/application/services/action_parser_service.py` | `DONE` | 정규식 & 17대 텐서 매핑 검증 완료 |
-| **서사 오케스트레이터**| `src/application/services/narrative_orchestrator.py` | `DONE` | 턴 진행 및 Undo 롤백 검증 완료 |
-| **전사 단위 테스트** | `tests/unit/` | `DONE` | 16개 테스트 0.10초 100% 통과 |
+| **캐릭터 공방 서비스** | `src/application/services/character_workshop_service.py` | `DONE` | 마스터 프롬프트 컴파일러 & 시각 태그 생성 |
+| **Gemini LLM 클라이언트**| `src/infrastructure/llm/gemini_llm_client.py` | `DONE` | API 연동 및 정규식 문학 정제기 검증 완료 |
+| **서사 오케스트레이터**| `src/application/services/narrative_orchestrator.py` | `DONE` | 턴 진행 및 Gemini LLM 서사 생성 연동 완료 |
+| **전사 단위 테스트** | `tests/unit/` | `DONE` | 21개 테스트 0.11초 100% 통과 |
