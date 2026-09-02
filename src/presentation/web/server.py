@@ -1,5 +1,5 @@
 """
-src/presentation/web/server.py — Python 내장 초고속 멀티스레드 웹 서버 및 Dify 17-Node REST API 엔드포인트
+src/presentation/web/server.py — Python 내장 초고속 멀티스레드 웹 서버 및 REST API 엔드포인트
 """
 
 import os
@@ -19,9 +19,7 @@ if PROJECT_ROOT not in sys.path:
 from src.application.dtos import TurnExecutionRequest
 from src.application.services.action_parser_service import ActionParserService
 from src.application.services.character_workshop_service import CharacterWorkshopService
-from src.application.services.dify_workflow_service import DifyWorkflowService
 from src.application.services.narrative_orchestrator import NarrativeOrchestratorService
-from src.application.services.visual_assignment_service import VisualAssignmentService
 from src.application.services.visual_synthesis_service import VisualSynthesisService
 from src.domain.character.enums import LowenArmor, RelationalVector
 from src.domain.character.models import Character
@@ -44,9 +42,7 @@ session_repo = SqliteNarrativeSessionRepository(db_manager)
 parser_service = ActionParserService()
 workshop_service = CharacterWorkshopService(char_repo)
 visual_service = VisualSynthesisService()
-visual_assigner = VisualAssignmentService()
 llm_client = GeminiLLMClient()
-dify_service = DifyWorkflowService(llm_client=llm_client)
 orchestrator_service = NarrativeOrchestratorService(
     character_repo=char_repo,
     session_repo=session_repo,
@@ -62,7 +58,7 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class AbyssWebHandler(SimpleHTTPRequestHandler):
-    """Abyss Empire 인터랙티브 웹앱 및 Dify 17-Node REST API 핸들러"""
+    """Abyss Empire 인터랙티브 웹앱 및 REST API 핸들러"""
 
     def do_GET(self) -> None:
         parsed_path = urllib.parse.urlparse(self.path)
@@ -78,8 +74,6 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
         elif path.startswith("/api/session/") and path.endswith("/history"):
             session_id = urllib.parse.unquote(path.split("/api/session/")[1].replace("/history", ""))
             self._handle_get_session_history(session_id)
-        elif path == "/api/dify/hydration":
-            self._send_json(dify_service.run_hydration())
         else:
             super().do_GET()
 
@@ -88,7 +82,9 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
         path = parsed_path.path
         body = self._read_json_body()
 
-        if path == "/api/session/opening":
+        if path == "/api/characters/create":
+            self._handle_create_character(body)
+        elif path == "/api/session/opening":
             self._handle_session_opening(body)
         elif path == "/api/session/turn":
             self._handle_session_turn(body)
@@ -97,14 +93,6 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
         elif path.startswith("/api/characters/") and path.endswith("/master-prompt"):
             seed_hash = urllib.parse.unquote(path.split("/api/characters/")[1].replace("/master-prompt", ""))
             self._handle_export_master_prompt(seed_hash)
-        elif path == "/api/dify/classifier":
-            self._handle_dify_classifier(body)
-        elif path == "/api/dify/compile-spec":
-            self._handle_dify_compile_spec(body)
-        elif path == "/api/dify/synthesize-master":
-            self._handle_dify_synthesize_master(body)
-        elif path == "/api/dify/assign-visual":
-            self._handle_dify_assign_visual(body)
         elif path == "/api/config/keys":
             self._handle_save_config(body)
         else:
@@ -149,6 +137,44 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
             "tensors": char.tensor_matrix.levels,
             "image_url": visual_url,
             "traits": char.traits
+        })
+
+    def _handle_create_character(self, body: Dict[str, Any]) -> None:
+        name = body.get("name", "새로운 캐릭터")
+        title = body.get("title", "방랑자")
+        armor_raw = body.get("armor_type", "Rigid")
+        traits = body.get("traits", "")
+
+        armor_map = {
+            "Rigid": LowenArmor.RIGID,
+            "Endurer": LowenArmor.ENDURER,
+            "Controller": LowenArmor.CONTROLLER,
+            "Deprived": LowenArmor.DEPRIVED,
+        }
+        armor = armor_map.get(armor_raw, LowenArmor.RIGID)
+        seed_hash = f"#{name[:4].upper()}-70G-NEW1"
+
+        new_char = Character(
+            seed_hash=seed_hash,
+            name=name,
+            armor_type=armor,
+            relational_vector=RelationalVector.DEVOTION_COMFORT,
+            title=title,
+            faction="자유 진영",
+            traits=traits
+        )
+        char_repo.save(new_char)
+        visual_url = visual_service.generate_pollinations_url(new_char)
+
+        self._send_json({
+            "seed_hash": new_char.seed_hash,
+            "name": new_char.name,
+            "title": new_char.title,
+            "faction": new_char.faction,
+            "armor_type": new_char.armor_type.value,
+            "stage": new_char.stage.value,
+            "ego_resilience": new_char.ego_resilience,
+            "image_url": visual_url
         })
 
     def _handle_get_session_history(self, session_id: str) -> None:
@@ -240,29 +266,6 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
         char = char_repo.get_by_seed(seed_hash) or Character.create_lilith()
         prompt = workshop_service.export_master_prompt(char)
         self._send_json({"seed_hash": char.seed_hash, "name": char.name, "master_prompt": prompt})
-
-    # Dify 17-Node Endpoints
-    def _handle_dify_classifier(self, body: Dict[str, Any]) -> None:
-        query = body.get("query", "")
-        res = dify_service.run_classifier(query)
-        self._send_json(res)
-
-    def _handle_dify_compile_spec(self, body: Dict[str, Any]) -> None:
-        approved_baseline = body.get("approved_baseline", {})
-        vector_id = body.get("vector_id", "V1")
-        res = dify_service.run_spec_compiler(approved_baseline, vector_id)
-        self._send_json(res)
-
-    def _handle_dify_synthesize_master(self, body: Dict[str, Any]) -> None:
-        approved_spec = body.get("approved_spec", {})
-        res = dify_service.run_master_synthesizer(approved_spec)
-        self._send_json(res)
-
-    def _handle_dify_assign_visual(self, body: Dict[str, Any]) -> None:
-        seed_hash = body.get("seed_hash", "#LILI-70G-BFFF")
-        char = char_repo.get_by_seed(seed_hash) or Character.create_lilith()
-        res = visual_assigner.assign_visual_to_character(char)
-        self._send_json(res)
 
     def _handle_save_config(self, body: Dict[str, Any]) -> None:
         gemini = body.get("gemini_api_key", "")

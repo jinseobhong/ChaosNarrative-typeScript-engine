@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>💎 Abyss Empire: Recursive Narrative & Visual Mission Control</title>
-  <!-- Tailwind CSS & Fonts -->
+  <title>Abyss Empire — Minimal Prototype (캐릭터 생성 & 대화창)</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Pretendard:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     tailwind.config = {
@@ -17,16 +14,14 @@
         extend: {
           fontFamily: {
             sans: ['Pretendard', 'sans-serif'],
-            cinzel: ['Cinzel', 'serif'],
             mono: ['Fira Code', 'monospace']
           },
           colors: {
             abyss: {
               950: '#06070a',
-              900: '#0c0e14',
-              850: '#11141d',
-              800: '#171b26',
-              700: '#232938',
+              900: '#0b0e14',
+              850: '#11151f',
+              800: '#171c28',
               accent: '#e02b5e',
               gold: '#e6a84d',
               violet: '#9d4edd',
@@ -39,359 +34,192 @@
   </script>
   <style>
     body {
-      background: radial-gradient(circle at 50% 20%, #151a28 0%, #08090d 60%, #030406 100%);
+      background: #08090d;
       color: #e2e8f0;
     }
-    .glass-card {
-      background: rgba(18, 22, 33, 0.7);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-    }
-    .glass-card-glow {
-      background: rgba(22, 27, 40, 0.85);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(224, 43, 94, 0.3);
-      box-shadow: 0 0 25px rgba(224, 43, 94, 0.15);
-    }
-    .custom-scrollbar::-webkit-scrollbar {
+    .custom-scroll::-webkit-scrollbar {
       width: 6px;
     }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: rgba(10, 12, 18, 0.5);
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.2);
     }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
+    .custom-scroll::-webkit-scrollbar-thumb {
       background: rgba(224, 43, 94, 0.3);
       border-radius: 3px;
     }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: rgba(224, 43, 94, 0.6);
-    }
-    @keyframes pulse-slow {
-      0%, 100% { opacity: 0.9; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.02); }
-    }
-    .portrait-glow {
-      animation: pulse-slow 6s ease-in-out infinite;
-    }
   </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col font-sans selection:bg-abyss-accent selection:text-white">
+<body class="h-screen w-screen overflow-hidden flex flex-col font-sans">
 
-  <!-- 1. Global Top Navigation Header -->
-  <header class="h-16 border-b border-white/10 glass-card px-6 flex items-center justify-between z-30 shrink-0">
-    <div class="flex items-center gap-4">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-abyss-accent via-abyss-violet to-abyss-gold flex items-center justify-center shadow-lg shadow-abyss-accent/20">
-        <i data-lucide="gem" class="w-5 h-5 text-white"></i>
+  <!-- 1. Top Bar -->
+  <header class="h-14 border-b border-white/10 bg-abyss-900 px-6 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-abyss-accent/20 border border-abyss-accent/40 flex items-center justify-center text-abyss-accent font-bold text-sm">
+        💎
       </div>
       <div>
-        <h1 class="text-lg font-cinzel font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-rose-200 to-amber-200">
-          ABYSS EMPIRE
-        </h1>
-        <p class="text-[11px] text-gray-400 font-mono tracking-tight flex items-center gap-2">
-          <span>RECURSIVE NARRATIVE ENGINE v2.5</span>
-          <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-          <span class="text-emerald-400 font-medium" id="engine-status">ONLINE (0ms Deterministic + Gemini LLM)</span>
-        </p>
+        <h1 class="text-sm font-bold tracking-wider text-white">ABYSS EMPIRE MVP</h1>
+        <p class="text-[10px] text-gray-400 font-mono">캐릭터 생성 & 고밀도 롤플레이 대화창</p>
       </div>
     </div>
 
-    <!-- Active Character Badges & Fast Switcher -->
-    <div class="flex items-center gap-2" id="character-selector-pills">
+    <!-- Active Character Selector Pills -->
+    <div class="flex items-center gap-2" id="character-pills-container">
       <!-- Injected by JS -->
     </div>
 
-    <!-- Right Controls -->
-    <div class="flex items-center gap-3">
-      <button onclick="openDifyStudioModal()" class="px-3.5 py-1.5 rounded-lg border border-abyss-violet/40 bg-abyss-violet/10 hover:bg-abyss-violet/20 text-abyss-violet text-xs font-semibold flex items-center gap-1.5 transition">
-        <i data-lucide="network" class="w-4 h-4"></i>
-        <span>Dify 17-Node Studio</span>
+    <!-- Actions -->
+    <div class="flex items-center gap-2">
+      <button onclick="showCreateCharacterModal()" class="px-3 py-1.5 rounded-lg bg-abyss-accent hover:bg-rose-600 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-abyss-accent/20">
+        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+        <span>+ 캐릭터 생성</span>
       </button>
-
-      <button onclick="exportMasterPrompt()" class="px-3.5 py-1.5 rounded-lg border border-abyss-gold/40 bg-abyss-gold/10 hover:bg-abyss-gold/20 text-abyss-gold text-xs font-semibold flex items-center gap-1.5 transition">
-        <i data-lucide="file-code" class="w-4 h-4"></i>
-        <span>25,000자 시스템 프롬프트</span>
-      </button>
-
-      <button onclick="openConfigModal()" class="p-2 rounded-lg border border-white/10 hover:border-white/30 hover:bg-white/5 text-gray-300 transition" title="API Keys & Engine Settings">
-        <i data-lucide="settings" class="w-4 h-4"></i>
+      <button onclick="undoTurn()" class="px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 text-gray-300 text-xs flex items-center gap-1.5 transition">
+        <i data-lucide="undo-2" class="w-3.5 h-3.5"></i>
+        <span>Undo 롤백</span>
       </button>
     </div>
   </header>
 
-  <!-- 2. Main Triple-Split Viewport -->
+  <!-- 2. Main Viewport (2-Column Flat Layout: Left Character Portrait & Stats, Right Dialogue Stream) -->
   <main class="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden relative">
 
-    <!-- LEFT PANEL: 832x1216 Live Visual Portrait & Somatic Ego Status (Cols 1-3) -->
-    <section class="col-span-3 flex flex-col gap-4 overflow-hidden">
-      <!-- Portrait Card -->
-      <div class="flex-1 glass-card rounded-2xl overflow-hidden relative flex flex-col border border-white/10 group shadow-2xl">
-        <!-- Live Portrait Image -->
-        <div class="relative flex-1 w-full overflow-hidden bg-black/60 flex items-center justify-center">
-          <img id="character-portrait" src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80" alt="Character Portrait" class="w-full h-full object-cover object-top portrait-glow transition-all duration-700">
-          <div class="absolute inset-0 bg-gradient-to-t from-abyss-950 via-transparent to-black/30"></div>
-          
-          <!-- Stage Badge Overlay -->
-          <div class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-[11px] font-mono font-bold text-rose-300 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-            <span id="character-stage-label">Stage 1 (탄성 저항)</span>
-          </div>
-
-          <!-- Seed Badge -->
-          <div class="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono text-gray-400" id="character-seed-label">
-            #LILI-70G-BFFF
-          </div>
-
-          <!-- Character Identity Bottom Banner -->
-          <div class="absolute bottom-3 left-3 right-3">
-            <div class="text-xs font-semibold text-abyss-gold tracking-wide" id="character-title-label">제1황녀 • 제국 황실</div>
-            <div class="text-xl font-bold text-white tracking-wide flex items-center justify-between">
-              <span id="character-name-label">릴리스</span>
-              <span class="text-xs px-2 py-0.5 rounded bg-abyss-accent/20 border border-abyss-accent/40 text-abyss-accent font-mono" id="character-armor-label">RIGID</span>
-            </div>
-          </div>
+    <!-- LEFT: Character Info & Visual (Cols 1-4) -->
+    <section class="col-span-4 flex flex-col gap-3 overflow-hidden bg-abyss-900 rounded-2xl border border-white/10 p-4">
+      <div class="relative flex-1 w-full rounded-xl overflow-hidden bg-black/40 border border-white/5 flex items-center justify-center">
+        <img id="char-portrait-img" src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80" alt="Portrait" class="w-full h-full object-cover object-top">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30"></div>
+        
+        <!-- Status Overlay -->
+        <div class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[11px] font-mono font-bold text-rose-300" id="char-stage-badge">
+          Stage 1 (탄성 저항)
+        </div>
+        <div class="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/70 border border-white/10 text-[10px] font-mono text-gray-400" id="char-seed-badge">
+          #LILI-70G-BFFF
         </div>
 
-        <!-- Ego Durability & Neural Pollution Bars -->
-        <div class="p-4 bg-abyss-900/90 border-t border-white/10 flex flex-col gap-2.5">
-          <div>
-            <div class="flex justify-between text-xs font-medium mb-1">
-              <span class="text-rose-300 flex items-center gap-1"><i data-lucide="shield" class="w-3.5 h-3.5"></i> 에고 자아 내구도</span>
-              <span class="font-mono text-rose-400" id="ego-value">100.0%</span>
-            </div>
-            <div class="w-full h-2 rounded-full bg-black/50 overflow-hidden border border-white/5">
-              <div id="ego-bar" class="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-amber-400 transition-all duration-500" style="width: 100%;"></div>
-            </div>
+        <div class="absolute bottom-3 left-3 right-3">
+          <div class="text-xs font-semibold text-abyss-gold" id="char-title-text">제1황녀 • 제국 황실</div>
+          <div class="text-lg font-bold text-white flex items-center justify-between">
+            <span id="char-name-text">릴리스</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-abyss-accent/20 border border-abyss-accent/40 text-abyss-accent font-mono" id="char-armor-text">RIGID</span>
           </div>
+        </div>
+      </div>
 
-          <div>
-            <div class="flex justify-between text-xs font-medium mb-1">
-              <span class="text-cyan-300 flex items-center gap-1"><i data-lucide="activity" class="w-3.5 h-3.5"></i> 신경 침식/오염도</span>
-              <span class="font-mono text-cyan-400" id="pollution-value">0.0%</span>
-            </div>
-            <div class="w-full h-2 rounded-full bg-black/50 overflow-hidden border border-white/5">
-              <div id="pollution-bar" class="h-full bg-gradient-to-r from-cyan-600 to-violet-500 transition-all duration-500" style="width: 0%;"></div>
-            </div>
-          </div>
+      <!-- Ego Resilience Gauge -->
+      <div class="p-3 bg-black/40 rounded-xl border border-white/5 flex flex-col gap-2">
+        <div class="flex justify-between text-xs">
+          <span class="text-rose-300 font-medium flex items-center gap-1"><i data-lucide="shield" class="w-3.5 h-3.5"></i> 에고 자아 내구도</span>
+          <span class="font-mono text-rose-400" id="ego-val">100.0%</span>
+        </div>
+        <div class="w-full h-2 rounded-full bg-black/60 overflow-hidden">
+          <div id="ego-bar-fill" class="h-full bg-gradient-to-r from-rose-600 to-amber-400 transition-all duration-300" style="width: 100%;"></div>
         </div>
       </div>
     </section>
 
-    <!-- CENTER PANEL: Roleplay Narrative Dialogue & Dynamic Action Stream (Cols 4-8) -->
-    <section class="col-span-5 flex flex-col glass-card rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
-      <!-- Session Header -->
-      <div class="h-12 border-b border-white/10 px-5 flex items-center justify-between bg-black/20 shrink-0">
-        <div class="flex items-center gap-2">
-          <i data-lucide="sparkles" class="w-4 h-4 text-abyss-gold"></i>
-          <span class="text-xs font-semibold uppercase tracking-wider text-gray-300">Live Narrative Roleplay</span>
-          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-gray-400" id="turn-step-counter">Turn Step 1</span>
-        </div>
-        <button onclick="undoTurn()" class="px-2.5 py-1 rounded border border-white/10 hover:border-rose-400/40 hover:bg-rose-500/10 text-[11px] text-gray-300 hover:text-rose-300 flex items-center gap-1 transition" title="직전 턴 원자적 롤백 (Undo)">
-          <i data-lucide="undo-2" class="w-3.5 h-3.5"></i>
-          <span>Undo 롤백</span>
-        </button>
+    <!-- RIGHT: Live Dialogue Chat Stream & Tactical Levers (Cols 5-12) -->
+    <section class="col-span-8 flex flex-col bg-abyss-900 rounded-2xl border border-white/10 overflow-hidden">
+      <!-- Chat Header -->
+      <div class="h-11 border-b border-white/10 px-4 flex items-center justify-between bg-black/30 shrink-0">
+        <span class="text-xs font-semibold text-gray-300 flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-abyss-gold"></i>
+          <span>실시간 서사 롤플레이</span>
+        </span>
+        <span class="text-[10px] font-mono text-gray-400" id="turn-counter">TURN 1</span>
       </div>
 
-      <!-- Narrative Prose Stream -->
-      <div class="flex-1 p-5 overflow-y-auto custom-scrollbar flex flex-col gap-4" id="chat-stream">
-        <!-- Dynamically Populated Prose -->
+      <!-- Dialogue Stream -->
+      <div class="flex-1 p-4 overflow-y-auto custom-scroll flex flex-col gap-3.5" id="dialogue-stream">
+        <!-- Message bubbles injected by JS -->
       </div>
 
-      <!-- 3+1 Dynamic Tactical Choices & Input Bar -->
-      <div class="p-4 border-t border-white/10 bg-abyss-900/90 flex flex-col gap-3 shrink-0">
-        <!-- 3+1 Quick Tactical Action Buttons -->
-        <div class="grid grid-cols-2 gap-2" id="tactical-choices-container">
-          <!-- Dynamically populated choices -->
+      <!-- Real-time Loading Feedback Banner (~하는 중입니다) -->
+      <div id="loading-feedback-bar" class="hidden px-4 py-2.5 bg-abyss-accent/15 border-t border-b border-abyss-accent/30 flex items-center justify-between text-xs text-rose-200 shrink-0">
+        <div class="flex items-center gap-2 font-medium">
+          <svg class="animate-spin h-4 w-4 text-abyss-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span id="loading-feedback-text">릴리스가 생각을 정리하고 서사를 작성하는 중입니다...</span>
+        </div>
+        <span class="text-[10px] font-mono text-rose-300/70">LLM Processing</span>
+      </div>
+
+      <!-- 5 Tactical Choices (Single-click Levers) -->
+      <div class="p-3 border-t border-white/10 bg-black/20 flex flex-col gap-2 shrink-0">
+        <div class="text-[11px] font-semibold text-gray-400 flex items-center justify-between mb-0.5">
+          <span>⚡ 실시간 전술 선택지 (클릭 시 즉시 실행)</span>
+          <span class="text-[10px] font-mono text-gray-500">5-Directional Tactical Levers</span>
+        </div>
+        <div class="grid grid-cols-1 gap-1.5" id="tactical-choices-list">
+          <!-- Dynamically populated 5 choices -->
         </div>
 
-        <!-- Custom Free Text Input -->
-        <form onsubmit="handleSendAction(event)" class="flex gap-2">
-          <input type="text" id="user-action-input" placeholder='대사("...") 또는 행동(*...*)을 자유롭게 입력하세요' class="flex-1 bg-black/50 border border-white/15 focus:border-abyss-accent focus:ring-1 focus:ring-abyss-accent rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-sans">
-          <button type="submit" id="send-btn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-abyss-accent to-rose-600 hover:from-rose-500 hover:to-abyss-accent text-white text-sm font-semibold flex items-center gap-1.5 shadow-lg shadow-abyss-accent/20 transition shrink-0">
-            <span>실행</span>
-            <i data-lucide="send" class="w-4 h-4"></i>
+        <!-- Free Text Input Form -->
+        <form onsubmit="handleSendAction(event)" class="flex gap-2 mt-1">
+          <input type="text" id="user-input-box" placeholder='행동(*...*)이나 대사("...")를 입력하세요... (Enter 전송)' class="flex-1 bg-black/60 border border-white/15 focus:border-abyss-accent focus:ring-1 focus:ring-abyss-accent rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition">
+          <button type="submit" id="send-action-btn" class="px-5 py-2.5 rounded-xl bg-abyss-accent hover:bg-rose-600 text-white text-sm font-semibold flex items-center gap-1.5 transition shrink-0">
+            <span>전송</span>
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
           </button>
         </form>
       </div>
     </section>
-
-    <!-- RIGHT PANEL: 17 Somatic Tensors Matrix & Dynamic 70-Gene Ledger (Cols 9-12) -->
-    <section class="col-span-4 flex flex-col gap-4 overflow-hidden">
-      <!-- 17 Tensors Real-Time Matrix Card -->
-      <div class="flex-1 glass-card rounded-2xl border border-white/10 p-4 flex flex-col overflow-hidden shadow-2xl">
-        <div class="flex items-center justify-between mb-3 shrink-0">
-          <div class="flex items-center gap-2">
-            <i data-lucide="gauge" class="w-4 h-4 text-cyan-400"></i>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-gray-200">17대 생체·의복 텐서 매트릭스</h2>
-          </div>
-          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Active Kinematic Chain</span>
-        </div>
-
-        <!-- 17 Tensors Grid List -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-1" id="tensors-container">
-          <!-- Dynamically populated 17 Tensors -->
-        </div>
-      </div>
-
-      <!-- 3-Layer Somatic & Memory Ledger Card -->
-      <div class="h-44 glass-card rounded-2xl border border-white/10 p-3.5 flex flex-col shrink-0">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-[11px] font-bold text-gray-300 flex items-center gap-1.5 font-mono">
-            <i data-lucide="database" class="w-3.5 h-3.5 text-abyss-violet"></i>
-            <span>3-Layer Somatic & Memory Ledger</span>
-          </span>
-          <span class="text-[10px] font-mono text-gray-400">SSOT Storage</span>
-        </div>
-        <div class="flex-1 overflow-y-auto custom-scrollbar text-[11px] font-mono text-gray-400 flex flex-col gap-1" id="delta-logs-container">
-          <div class="text-rose-400">▸ [04_cervical] ➔ 경추 긴장 및 초커 압박 파동 전이</div>
-          <div class="text-amber-400">▸ [15_integumentary] ➔ 목선 및 쇄골 표피 체온 급상승</div>
-          <div class="text-gray-400">▸ [02_ocular] ➔ 도도한 시선 속 미세한 동공 수축</div>
-        </div>
-      </div>
-    </section>
   </main>
 
-  <!-- MODAL: Dify 17-Node Multi-Agent Studio -->
-  <div id="dify-studio-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-6">
-    <div class="w-full max-w-4xl h-[85vh] glass-card-glow rounded-2xl flex flex-col overflow-hidden border border-abyss-violet/40">
-      <div class="h-14 border-b border-white/10 px-6 flex items-center justify-between bg-black/40">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-abyss-violet/20 border border-abyss-violet/40 flex items-center justify-center text-abyss-violet">
-            <i data-lucide="network" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <h3 class="text-sm font-bold text-white">Dify 17-Node Multi-Agent Master Spec Studio</h3>
-            <p class="text-[11px] text-gray-400 font-mono">Human Checkpoints (V1/V2 & Spec Diff Approval) & 25,000-char Master Compiler</p>
-          </div>
-        </div>
-        <button onclick="closeDifyStudioModal()" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <div class="flex-1 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
-        <!-- Step 1: Input Query & Domain Classifier -->
-        <div class="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col gap-3">
-          <label class="text-xs font-bold text-gray-300 flex items-center gap-1.5">
-            <i data-lucide="search" class="w-3.5 h-3.5 text-cyan-400"></i>
-            <span>[Node 3] 요구사항 입력 & 2대 서사 궤적(V1/V2) 도출</span>
-          </label>
-          <div class="flex gap-2">
-            <input type="text" id="dify-input-query" value="선조 가문의 빚을 갚기 위해 순결 서약을 맺은 황녀 릴리스와의 사적 밀실 롤플레이 규격을 수립하라." class="flex-1 bg-black/60 border border-white/15 rounded-xl px-4 py-2 text-xs text-white outline-none">
-            <button onclick="runDifyClassifier()" class="px-4 py-2 rounded-xl bg-abyss-violet text-white text-xs font-semibold hover:bg-purple-600 transition">
-              분류 및 V1/V2 분석
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 2: Human Checkpoint 1 (V1 vs V2 Resolution Vector Selection) -->
-        <div id="dify-hitl1-container" class="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 flex flex-col gap-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
-              <i data-lucide="user-check" class="w-4 h-4 text-purple-400"></i>
-              <span>🛑 [Human Checkpoint 1] 전략/서사 궤적 선택</span>
-            </span>
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">HITL Approval Required</span>
-          </div>
-          <div class="grid grid-cols-2 gap-3" id="dify-vectors-grid">
-            <div class="p-3.5 rounded-lg bg-black/40 border border-white/10 hover:border-purple-400 cursor-pointer transition" onclick="selectVector('V1')">
-              <div class="text-xs font-bold text-purple-300 mb-1">[V1] 차가운 귀족적 저항과 서서히 번지는 균열</div>
-              <div class="text-[11px] text-gray-400">도도한 신분과 자존심을 유지하되, 신체 접촉에 따라 내면의 결핍과 순결 서약이 흔들리는 궤적.</div>
-            </div>
-            <div class="p-3.5 rounded-lg bg-black/40 border border-white/10 hover:border-purple-400 cursor-pointer transition" onclick="selectVector('V2')">
-              <div class="text-xs font-bold text-rose-300 mb-1">[V2] 강렬한 프라이드 붕괴와 소마틱 동기화</div>
-              <div class="text-[11px] text-gray-400">초기부터 강한 신체적 압박을 가하여 에고 내구도를 깎아내리고 절대적 신체 종속으로 이끄는 궤적.</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 3: 25,000-char Master Compiler Output -->
-        <div class="flex-1 flex flex-col gap-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-gray-300 flex items-center gap-1.5">
-              <i data-lucide="file-text" class="w-3.5 h-3.5 text-abyss-gold"></i>
-              <span>[Node 11] 컴파일된 25,000자 엔터프라이즈급 마스터 시스템 프롬프트</span>
-            </span>
-            <button onclick="copyCompiledPrompt()" class="px-3 py-1 rounded bg-abyss-gold/20 border border-abyss-gold/40 text-abyss-gold text-xs font-semibold hover:bg-abyss-gold/30 flex items-center gap-1 transition">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-              <span>원클릭 복사</span>
-            </button>
-          </div>
-          <textarea id="compiled-master-prompt-area" class="w-full h-48 bg-black/60 border border-white/15 rounded-xl p-3 font-mono text-[11px] text-gray-300 custom-scrollbar outline-none" readonly>
-# [SYSTEM DIRECTIVE: 70-STEP ABSOLUTE PERSONALITY GENE & 25-MASTER SPEC RECURSIVE NARRATIVE ENGINE]
-[SEED HASH] #LILI-70G-BFFF
-
-# 1. Role & Operating System
-당신은 《심연의 제국: 침식의 서사》 세계관의 제1황녀 '릴리스'(제국 황실)이다.
-...
-          </textarea>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: API Keys Configuration -->
-  <div id="config-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-6">
-    <div class="w-full max-w-lg glass-card rounded-2xl p-6 flex flex-col gap-4 border border-white/15 shadow-2xl">
+  <!-- 3. Character Creation Modal (최소 단위 생성기) -->
+  <div id="create-char-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-6">
+    <div class="w-full max-w-md bg-abyss-900 rounded-2xl p-6 flex flex-col gap-4 border border-white/15 shadow-2xl">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i data-lucide="key-round" class="w-4 h-4 text-abyss-accent"></i>
-          <span>API Keys & Multi-Model Engine Settings</span>
+          <i data-lucide="user-plus" class="w-4 h-4 text-abyss-accent"></i>
+          <span>새로운 캐릭터 생성</span>
         </h3>
-        <button onclick="closeConfigModal()" class="text-gray-400 hover:text-white">
+        <button onclick="hideCreateCharacterModal()" class="text-gray-400 hover:text-white">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
 
-      <div class="flex flex-col gap-3">
+      <form onsubmit="handleCreateCharacter(event)" class="flex flex-col gap-3">
         <div>
-          <label class="text-xs font-semibold text-gray-300 block mb-1">Google Gemini API Key</label>
-          <input type="password" id="cfg-gemini-key" placeholder="AIzaSy..." class="w-full bg-black/50 border border-white/15 rounded-lg px-3.5 py-2 text-xs text-white outline-none">
+          <label class="text-xs font-semibold text-gray-300 block mb-1">캐릭터 이름</label>
+          <input type="text" id="new-char-name" placeholder="예: 벨리아, 세레나" required class="w-full bg-black/50 border border-white/15 rounded-lg px-3 py-2 text-xs text-white outline-none">
         </div>
         <div>
-          <label class="text-xs font-semibold text-gray-300 block mb-1">Anthropic Claude API Key</label>
-          <input type="password" id="cfg-claude-key" placeholder="sk-ant-..." class="w-full bg-black/50 border border-white/15 rounded-lg px-3.5 py-2 text-xs text-white outline-none">
+          <label class="text-xs font-semibold text-gray-300 block mb-1">칭호 및 신분</label>
+          <input type="text" id="new-char-title" placeholder="예: 암흑 사제 • 그림자 교단" required class="w-full bg-black/50 border border-white/15 rounded-lg px-3 py-2 text-xs text-white outline-none">
         </div>
         <div>
-          <label class="text-xs font-semibold text-gray-300 block mb-1">Hugging Face API Token</label>
-          <input type="password" id="cfg-hf-token" placeholder="hf_..." class="w-full bg-black/50 border border-white/15 rounded-lg px-3.5 py-2 text-xs text-white outline-none">
+          <label class="text-xs font-semibold text-gray-300 block mb-1">로웬 신체 갑주 유형</label>
+          <select id="new-char-armor" class="w-full bg-black/50 border border-white/15 rounded-lg px-3 py-2 text-xs text-white outline-none">
+            <option value="Rigid">Rigid (완벽주의 척추 방어)</option>
+            <option value="Endurer">Endurer (신체 억압 및 인내)</option>
+            <option value="Controller">Controller (상체 팽창 및 지배)</option>
+            <option value="Deprived">Deprived (애착 갈망 및 결핍)</option>
+          </select>
         </div>
-      </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-300 block mb-1">핵심 외형 및 성격 서사</label>
+          <textarea id="new-char-traits" rows="3" placeholder="예: 흑발의 단발머리, 붉은 눈동자, 목에 채워진 서늘한 가시 초커, 도도하지만 체온에 취약함" class="w-full bg-black/50 border border-white/15 rounded-lg p-2.5 text-xs text-white outline-none"></textarea>
+        </div>
 
-      <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
-        <button onclick="closeConfigModal()" class="px-4 py-2 rounded-lg text-xs text-gray-400 hover:text-white">취소</button>
-        <button onclick="saveApiKeys()" class="px-5 py-2 rounded-lg bg-abyss-accent hover:bg-rose-600 text-white text-xs font-semibold transition">설정 저장</button>
-      </div>
+        <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
+          <button type="button" onclick="hideCreateCharacterModal()" class="px-4 py-2 rounded-lg text-xs text-gray-400 hover:text-white">취소</button>
+          <button type="submit" id="create-char-btn" class="px-5 py-2 rounded-lg bg-abyss-accent hover:bg-rose-600 text-white text-xs font-semibold transition">
+            생성 완료
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- JavaScript Application Controller -->
+  <!-- JavaScript Controller -->
   <script>
-    // State
     let characters = [];
     let activeCharacter = null;
     let turnCount = 1;
-
-    const TENSORS_META = [
-      { id: "01_cranial", name: "두부·헤어", desc: "머리결/장식/티아라" },
-      { id: "02_ocular", name: "시선·동공", desc: "눈빛/동공/시선처리" },
-      { id: "03_vocal", name: "성대·입술", desc: "입술/호흡/신음/혀" },
-      { id: "04_cervical", name: "목덜미·초커", desc: "경추/초커/목선" },
-      { id: "05_clavicular", name: "쇄골·어깨", desc: "쇄골/어깨선/노출" },
-      { id: "06_thoracic", name: "흉곽·심박", desc: "가슴팍/심장박동/바스트" },
-      { id: "07_appendage", name: "귓가·부속", desc: "귓불/귀/날개/꼬리" },
-      { id: "08_dorsal", name: "등줄기·척추", desc: "기립근/등선/척추" },
-      { id: "09_sartorial", name: "의복·코르셋", desc: "단추/지퍼/스타킹" },
-      { id: "10_manual", name: "손목·손끝", desc: "악력/손가락/뺨" },
-      { id: "11_abdominal", name: "복부·배꼽", desc: "명치/복부수축" },
-      { id: "12_pelvic", name: "골반·허리", desc: "골반너비/요추곡률" },
-      { id: "13_femoral", name: "허벅지·무릎", desc: "대퇴부/꺾인무릎" },
-      { id: "14_pedal", name: "족부·발목", desc: "접지력/발끝/구두" },
-      { id: "15_integumentary", name: "살결·체온", desc: "표피열감/홍조/땀" },
-      { id: "16_tactile", name: "접촉·마찰", desc: "압박자국/손자국" },
-      { id: "17_aura", name: "압박·밀실", desc: "공간압력/그림자" },
-    ];
 
     async function init() {
       lucide.createIcons();
@@ -400,6 +228,7 @@
 
     async function fetchCharacters() {
       try {
+        setLoading(true, "캐릭터 목록을 불러오는 중입니다...");
         const res = await fetch('/api/characters');
         const data = await res.json();
         characters = data.characters || [];
@@ -407,15 +236,17 @@
         if (characters.length > 0) {
           await selectCharacter(characters[0].seed_hash);
         }
-      } catch (e) {
-        console.error("Failed to load characters", e);
+      } catch (err) {
+        console.error("Fetch characters failed", err);
+      } finally {
+        setLoading(false);
       }
     }
 
     function renderCharacterPills() {
-      const container = document.getElementById('character-selector-pills');
+      const container = document.getElementById('character-pills-container');
       container.innerHTML = characters.map(c => `
-        <button onclick="selectCharacter('${c.seed_hash}')" class="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition ${activeCharacter?.seed_hash === c.seed_hash ? 'bg-abyss-accent text-white shadow-lg shadow-abyss-accent/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}">
+        <button onclick="selectCharacter('${c.seed_hash}')" class="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition ${activeCharacter?.seed_hash === c.seed_hash ? 'bg-abyss-accent text-white shadow-md shadow-abyss-accent/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}">
           <span>${c.name}</span>
           <span class="text-[10px] opacity-70 font-mono">(${c.armor_type})</span>
         </button>
@@ -431,49 +262,25 @@
 
     function updateCharacterUI() {
       if (!activeCharacter) return;
-      document.getElementById('character-name-label').innerText = activeCharacter.name;
-      document.getElementById('character-title-label').innerText = `${activeCharacter.title} • ${activeCharacter.faction}`;
-      document.getElementById('character-armor-label').innerText = activeCharacter.armor_type;
-      document.getElementById('character-seed-label').innerText = activeCharacter.seed_hash;
-      document.getElementById('character-stage-label').innerText = activeCharacter.stage || "Stage 1 (탄성 저항)";
+      document.getElementById('char-name-text').innerText = activeCharacter.name;
+      document.getElementById('char-title-text').innerText = `${activeCharacter.title} • ${activeCharacter.faction}`;
+      document.getElementById('char-armor-text').innerText = activeCharacter.armor_type;
+      document.getElementById('char-seed-badge').innerText = activeCharacter.seed_hash;
+      document.getElementById('char-stage-badge').innerText = activeCharacter.stage || "Stage 1 (탄성 저항)";
       
       const ego = activeCharacter.ego_resilience !== undefined ? activeCharacter.ego_resilience : 100.0;
-      const pollution = activeCharacter.neural_pollution !== undefined ? activeCharacter.neural_pollution : 0.0;
-      document.getElementById('ego-value').innerText = `${ego.toFixed(1)}%`;
-      document.getElementById('ego-bar').style.width = `${ego}%`;
-      document.getElementById('pollution-value').innerText = `${pollution.toFixed(1)}%`;
-      document.getElementById('pollution-bar').style.width = `${pollution}%`;
+      document.getElementById('ego-val').innerText = `${ego.toFixed(1)}%`;
+      document.getElementById('ego-bar-fill').style.width = `${ego}%`;
 
       if (activeCharacter.image_url) {
-        document.getElementById('character-portrait').src = activeCharacter.image_url;
+        document.getElementById('char-portrait-img').src = activeCharacter.image_url;
       }
-      renderTensorsGrid(activeCharacter.tensors || {});
-    }
-
-    function renderTensorsGrid(tensorLevels = {}) {
-      const container = document.getElementById('tensors-container');
-      container.innerHTML = TENSORS_META.map(t => {
-        const val = tensorLevels[t.id] || 0.0;
-        const pct = Math.round(val * 100);
-        const isActive = val > 0.1;
-        return `
-          <div class="p-1.5 rounded-lg ${isActive ? 'bg-cyan-950/30 border border-cyan-500/30' : 'bg-white/5 border border-white/5'} flex flex-col gap-1 transition">
-            <div class="flex justify-between items-center text-[11px]">
-              <span class="font-mono ${isActive ? 'text-cyan-300 font-bold' : 'text-gray-400'}">${t.name}</span>
-              <span class="text-[10px] font-mono ${isActive ? 'text-cyan-400' : 'text-gray-500'}">${pct}%</span>
-            </div>
-            <div class="w-full h-1.5 rounded-full bg-black/40 overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-cyan-500 to-rose-500 transition-all duration-300" style="width: ${pct}%"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
     }
 
     async function loadSessionChat(seedHash) {
       const sessionId = `SESSION_${seedHash}`;
+      setLoading(true, `${activeCharacter?.name || '캐릭터'}의 대화 서사를 불러오는 중입니다...`);
       try {
-        // 1. 기존 대화 기록 조회
         const histRes = await fetch(`/api/session/${encodeURIComponent(sessionId)}/history`);
         const histData = await histRes.json();
         
@@ -481,12 +288,11 @@
           renderFullChatHistory(histData.turns);
           const lastTurn = histData.turns[histData.turns.length - 1];
           turnCount = lastTurn.step;
-          document.getElementById('turn-step-counter').innerText = `Turn Step ${lastTurn.step}`;
+          document.getElementById('turn-counter').innerText = `TURN ${lastTurn.step}`;
           if (lastTurn.dynamic_choices) {
             renderChoices(lastTurn.dynamic_choices);
           }
         } else {
-          // 2. 대화 기록이 없으면 신규 오프닝 프롤로그 로드
           const openRes = await fetch('/api/session/opening', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -495,23 +301,25 @@
           const openData = await openRes.json();
           renderSinglePrologue(openData.narrative_prose);
           turnCount = openData.step;
-          document.getElementById('turn-step-counter').innerText = `Turn Step ${openData.step}`;
+          document.getElementById('turn-counter').innerText = `TURN ${openData.step}`;
           if (openData.dynamic_choices) {
             renderChoices(openData.dynamic_choices);
           }
         }
       } catch (err) {
-        console.error("Failed to load session chat", err);
+        console.error("Load session chat failed", err);
+      } finally {
+        setLoading(false);
       }
     }
 
     function renderSinglePrologue(prose) {
-      const stream = document.getElementById('chat-stream');
+      const stream = document.getElementById('dialogue-stream');
       stream.innerHTML = `
-        <div class="p-4 rounded-xl bg-black/30 border border-white/5 text-sm leading-relaxed text-gray-200">
+        <div class="p-4 rounded-xl bg-black/40 border border-white/5 text-sm leading-relaxed text-gray-200">
           <div class="text-[11px] font-mono text-abyss-gold font-bold mb-2 flex items-center justify-between">
             <span class="flex items-center gap-1.5"><i data-lucide="book-open" class="w-3.5 h-3.5"></i> PROLOGUE SCENE</span>
-            <span class="text-[10px] text-gray-400">Step 1</span>
+            <span class="text-[10px] text-gray-400">TURN 1</span>
           </div>
           <div class="whitespace-pre-wrap font-sans text-gray-200">${prose}</div>
         </div>
@@ -520,14 +328,14 @@
     }
 
     function renderFullChatHistory(turns) {
-      const stream = document.getElementById('chat-stream');
+      const stream = document.getElementById('dialogue-stream');
       stream.innerHTML = turns.map(t => {
         if (t.step === 1 && t.user_action === "[OPENING SCENE]") {
           return `
-            <div class="p-4 rounded-xl bg-black/30 border border-white/5 text-sm leading-relaxed text-gray-200">
+            <div class="p-4 rounded-xl bg-black/40 border border-white/5 text-sm leading-relaxed text-gray-200">
               <div class="text-[11px] font-mono text-abyss-gold font-bold mb-2 flex items-center justify-between">
                 <span class="flex items-center gap-1.5"><i data-lucide="book-open" class="w-3.5 h-3.5"></i> PROLOGUE SCENE</span>
-                <span class="text-[10px] text-gray-400">Step 1</span>
+                <span class="text-[10px] text-gray-400">TURN 1</span>
               </div>
               <div class="whitespace-pre-wrap font-sans text-gray-200">${t.narrative_prose}</div>
             </div>
@@ -535,15 +343,15 @@
         }
         return `
           <div class="flex justify-end">
-            <div class="max-w-[80%] p-3 rounded-2xl rounded-tr-none bg-abyss-accent/20 border border-abyss-accent/40 text-xs text-white">
-              <div class="text-[10px] font-mono text-rose-300 font-bold mb-1">PLAYER ACTION (Step ${t.step})</div>
+            <div class="max-w-[85%] p-3 rounded-xl bg-abyss-accent/20 border border-abyss-accent/40 text-xs text-white">
+              <div class="text-[10px] font-mono text-rose-300 font-bold mb-1">👤 당신의 행동 / 대사 (TURN ${t.step})</div>
               <div>${t.user_action}</div>
             </div>
           </div>
-          <div class="p-4 rounded-xl bg-black/30 border border-white/5 text-sm leading-relaxed text-gray-200">
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5 text-sm leading-relaxed text-gray-200">
             <div class="text-[11px] font-mono text-abyss-gold font-bold mb-2 flex items-center justify-between">
-              <span class="flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> ${activeCharacter?.name || '캐릭터'}</span>
-              <span class="text-[10px] text-gray-400">Step ${t.step}</span>
+              <span class="flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> ${activeCharacter?.name || '캐릭터'} • ${activeCharacter?.stage || 'Stage 1'}</span>
+              <span class="text-[10px] text-gray-400">TURN ${t.step}</span>
             </div>
             <div class="whitespace-pre-wrap font-sans text-gray-200">${t.narrative_prose}</div>
           </div>
@@ -555,7 +363,7 @@
 
     async function handleSendAction(e) {
       e.preventDefault();
-      const input = document.getElementById('user-action-input');
+      const input = document.getElementById('user-input-box');
       const action = input.value.trim();
       if (!action) return;
       input.value = '';
@@ -568,9 +376,7 @@
 
     async function executeTurn(userAction) {
       if (!activeCharacter) return;
-      const btn = document.getElementById('send-btn');
-      btn.disabled = true;
-      btn.innerHTML = `<span class="animate-spin">⏳</span>`;
+      setLoading(true, `${activeCharacter.name}이(가) 당신의 행동에 반응하며 고밀도 서사를 집필하는 중입니다...`);
 
       try {
         const res = await fetch('/api/session/turn', {
@@ -584,56 +390,43 @@
         });
         const data = await res.json();
         
-        // Append to chat stream
         turnCount = data.step;
-        document.getElementById('turn-step-counter').innerText = `Turn Step ${data.step}`;
+        document.getElementById('turn-counter').innerText = `TURN ${data.step}`;
         appendProseToStream(userAction, data.narrative_prose, data.step);
 
-        // Update active character state
         activeCharacter.stage = data.stage;
         activeCharacter.ego_resilience = data.ego_resilience;
-        activeCharacter.neural_pollution = data.neural_pollution;
-        activeCharacter.tensors = data.tensor_levels;
         if (data.image_url) {
           activeCharacter.image_url = data.image_url;
         }
         updateCharacterUI();
 
-        // Update Delta logs
-        if (data.delta_logs && data.delta_logs.length > 0) {
-          const deltaContainer = document.getElementById('delta-logs-container');
-          deltaContainer.innerHTML = data.delta_logs.map(log => `<div class="text-rose-400">▸ ${log}</div>`).join('');
-        }
-
-        // Update Tactical Choices
         if (data.dynamic_choices && data.dynamic_choices.length > 0) {
           renderChoices(data.dynamic_choices);
         }
       } catch (err) {
         console.error("Turn execution failed", err);
-        alert("서사 생성 요청에 실패했습니다. 백엔드 콘솔 로그를 확인해 주세요.");
+        alert("서사 생성에 실패했습니다. 백엔드 콘솔을 확인해 주세요.");
       } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<span>실행</span><i data-lucide="send" class="w-4 h-4"></i>`;
-        lucide.createIcons();
+        setLoading(false);
       }
     }
 
     function appendProseToStream(action, prose, step) {
-      const stream = document.getElementById('chat-stream');
+      const stream = document.getElementById('dialogue-stream');
       const userBubble = `
         <div class="flex justify-end">
-          <div class="max-w-[80%] p-3 rounded-2xl rounded-tr-none bg-abyss-accent/20 border border-abyss-accent/40 text-xs text-white">
-            <div class="text-[10px] font-mono text-rose-300 font-bold mb-1">PLAYER ACTION (Step ${step})</div>
+          <div class="max-w-[85%] p-3 rounded-xl bg-abyss-accent/20 border border-abyss-accent/40 text-xs text-white">
+            <div class="text-[10px] font-mono text-rose-300 font-bold mb-1">👤 당신의 행동 / 대사 (TURN ${step})</div>
             <div>${action}</div>
           </div>
         </div>
       `;
       const aiBubble = `
-        <div class="p-4 rounded-xl bg-black/30 border border-white/5 text-sm leading-relaxed text-gray-200">
+        <div class="p-4 rounded-xl bg-black/40 border border-white/5 text-sm leading-relaxed text-gray-200">
           <div class="text-[11px] font-mono text-abyss-gold font-bold mb-2 flex items-center justify-between">
-            <span class="flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> ${activeCharacter.name} • ${activeCharacter.stage}</span>
-            <span class="text-[10px] text-gray-400">Live Response</span>
+            <span class="flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> ${activeCharacter?.name} • ${activeCharacter?.stage}</span>
+            <span class="text-[10px] text-gray-400">TURN ${step}</span>
           </div>
           <div class="whitespace-pre-wrap font-sans text-gray-200">${prose}</div>
         </div>
@@ -644,26 +437,31 @@
     }
 
     function renderChoices(choices) {
-      const container = document.getElementById('tactical-choices-container');
+      const container = document.getElementById('tactical-choices-list');
       const colorMap = {
-        "DEVOTION": { border: "hover:border-amber-400", tag: "text-amber-400", label: "[위로/애착]" },
-        "SUBJUGATION": { border: "hover:border-rose-400", tag: "text-rose-400", label: "[지배/압박]" },
-        "SEDUCTION": { border: "hover:border-purple-400", tag: "text-purple-400", label: "[유혹/밀착]" },
-        "SUSPENSION": { border: "hover:border-cyan-400", tag: "text-cyan-400", label: "[침묵/관망]" },
+        "DEVOTION": { tag: "text-amber-400", label: "★ 순애", border: "hover:border-amber-400" },
+        "SUBJUGATION": { tag: "text-rose-400", label: "■ 지배", border: "hover:border-rose-400" },
+        "SEDUCTION": { tag: "text-purple-400", label: "● 관능", border: "hover:border-purple-400" },
+        "SUSPENSION": { tag: "text-cyan-400", label: "▲ 굴복/관망", border: "hover:border-cyan-400" },
       };
       container.innerHTML = choices.map(c => {
         const meta = colorMap[c.type] || colorMap["DEVOTION"];
         return `
-          <button onclick="selectChoice('${c.action.replace(/'/g, "\\'")}')" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 ${meta.border} text-left text-xs transition group">
-            <span class="text-[10px] font-mono ${meta.tag} block mb-0.5">${meta.label}</span>
-            <span class="text-gray-200 group-hover:text-white">${c.label}</span>
+          <button onclick="selectChoice('${c.action.replace(/'/g, "\\'")}')" class="w-full p-2.5 rounded-lg bg-black/40 hover:bg-white/5 border border-white/10 ${meta.border} text-left flex items-center justify-between transition group">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-mono ${meta.tag} font-bold shrink-0">${meta.label}</span>
+              <span class="text-xs text-gray-300 group-hover:text-white line-clamp-1">${c.action}</span>
+            </div>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-500 group-hover:text-white shrink-0"></i>
           </button>
         `;
       }).join('');
+      lucide.createIcons();
     }
 
     async function undoTurn() {
       if (!activeCharacter) return;
+      setLoading(true, "직전 턴으로 되돌리는 중입니다...");
       try {
         const res = await fetch('/api/session/undo', {
           method: 'POST',
@@ -672,73 +470,68 @@
         });
         const data = await res.json();
         if (data.success) {
-          alert(`Step ${data.current_step} 시점으로 성공적으로 롤백되었습니다!`);
           await loadSessionChat(activeCharacter.seed_hash);
         } else {
           alert(data.message || "되돌릴 턴이 없습니다.");
         }
-      } catch (e) {
-        console.error("Undo error", e);
+      } catch (err) {
+        console.error("Undo error", err);
+      } finally {
+        setLoading(false);
       }
     }
 
-    // Dify Studio Modal
-    function openDifyStudioModal() {
-      document.getElementById('dify-studio-modal').classList.remove('hidden');
+    function setLoading(isLoading, message = "") {
+      const bar = document.getElementById('loading-feedback-bar');
+      const text = document.getElementById('loading-feedback-text');
+      const input = document.getElementById('user-input-box');
+      const sendBtn = document.getElementById('send-action-btn');
+
+      if (isLoading) {
+        text.innerText = message || "처리 중입니다...";
+        bar.classList.remove('hidden');
+        input.disabled = true;
+        sendBtn.disabled = true;
+      } else {
+        bar.classList.add('hidden');
+        input.disabled = false;
+        sendBtn.disabled = false;
+      }
     }
-    function closeDifyStudioModal() {
-      document.getElementById('dify-studio-modal').classList.add('hidden');
+
+    // Modal controls
+    function showCreateCharacterModal() {
+      document.getElementById('create-char-modal').classList.remove('hidden');
     }
-    function selectVector(v) {
-      alert(`[Human Checkpoint 1] ${v} 궤적이 채택되었습니다! 25대 마스터 시스템 명세를 컴파일합니다.`);
-      compileDifyMasterSpec(v);
+    function hideCreateCharacterModal() {
+      document.getElementById('create-char-modal').classList.add('hidden');
     }
-    async function compileDifyMasterSpec(vectorId) {
+    async function handleCreateCharacter(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-char-name').value.trim();
+      const title = document.getElementById('new-char-title').value.trim();
+      const armor = document.getElementById('new-char-armor').value;
+      const traits = document.getElementById('new-char-traits').value.trim();
+      if (!name) return;
+
+      hideCreateCharacterModal();
+      setLoading(true, `새로운 캐릭터 [${name}]을(를) 생성하고 서사를 초기화하는 중입니다...`);
+
       try {
-        const res = await fetch('/api/dify/compile-spec', {
+        const res = await fetch('/api/characters/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ vector_id: vectorId, seed_hash: activeCharacter?.seed_hash || "#LILI-70G-BFFF" })
+          body: JSON.stringify({ name, title, armor_type: armor, traits })
         });
-        const data = await res.json();
-        document.getElementById('compiled-master-prompt-area').value = data.compiled_prompt || "";
-      } catch (e) {
-        console.error("Compile spec error", e);
+        const newChar = await res.json();
+        await fetchCharacters();
+        await selectCharacter(newChar.seed_hash);
+      } catch (err) {
+        console.error("Create character error", err);
+        alert("캐릭터 생성에 실패했습니다.");
+      } finally {
+        setLoading(false);
       }
-    }
-    function copyCompiledPrompt() {
-      const area = document.getElementById('compiled-master-prompt-area');
-      area.select();
-      navigator.clipboard.writeText(area.value);
-      alert("💎 25,000자 마스터 시스템 프롬프트가 클립보드에 복사되었습니다!");
-    }
-
-    // Config Modal
-    function openConfigModal() {
-      document.getElementById('config-modal').classList.remove('hidden');
-    }
-    function closeConfigModal() {
-      document.getElementById('config-modal').classList.add('hidden');
-    }
-    async function saveApiKeys() {
-      const gemini = document.getElementById('cfg-gemini-key').value;
-      const claude = document.getElementById('cfg-claude-key').value;
-      const hf = document.getElementById('cfg-hf-token').value;
-      await fetch('/api/config/keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gemini_api_key: gemini, anthropic_api_key: claude, hf_token: hf })
-      });
-      alert("설정이 저장되었습니다!");
-      closeConfigModal();
-    }
-
-    async function exportMasterPrompt() {
-      if (!activeCharacter) return;
-      const res = await fetch(`/api/characters/${encodeURIComponent(activeCharacter.seed_hash)}/master-prompt`, { method: 'POST' });
-      const data = await res.json();
-      document.getElementById('compiled-master-prompt-area').value = data.master_prompt;
-      openDifyStudioModal();
     }
 
     window.addEventListener('DOMContentLoaded', init);

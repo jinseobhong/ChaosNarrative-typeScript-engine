@@ -4,7 +4,7 @@ src/domain/character/visual.py — 17대 생체 텐서 × 70대 유전자 비주
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 from src.domain.character.enums import LowenArmor, PressureStage
 from src.domain.character.tensor import TensorMatrix
@@ -23,9 +23,13 @@ class VisualGenetics:
     signature_accessory: str = "black metal choker, ruby gemstone"
 
     @classmethod
-    def from_character(cls, name: str, armor_type: LowenArmor, traits: Dict[str, str]) -> VisualGenetics:
+    def from_character(cls, name: str, armor_type: LowenArmor, traits: Any) -> VisualGenetics:
         """캐릭터 이름, 갑주, 고유 특성 텍스트로부터 비주얼 유전자 자동 추출 및 조립"""
-        desc = f"{name} {armor_type.value} " + " ".join(traits.values()).lower()
+        if isinstance(traits, dict):
+            traits_str = " ".join(str(v) for v in traits.values())
+        else:
+            traits_str = str(traits or "")
+        desc = f"{name} {armor_type.value} {traits_str}".lower()
 
         # 1. 헤어 색상 & 스타일
         if any(w in desc for w in ["백금발", "금발", "platinum", "blonde"]):
@@ -59,29 +63,27 @@ class VisualGenetics:
             costume = "form-fitting engraved silver plate armor corset, exposed collarbone, white cape"
             accessory = "silver collar choker, sacred sapphire gemstone"
         elif armor_type == LowenArmor.CONTROLLER:
-            costume = "luxurious plunging velvet robe over sheer translucent silk, corset"
-            accessory = "dark lace choker, gold rune armlet"
+            costume = "deep violet velvet archmage robe, corset lacing, exposed shoulder"
+            accessory = "dark gold choker, floating amethyst crystal"
         elif armor_type == LowenArmor.DEPRIVED:
-            costume = "antique fragile black lace dress, sheer ruffled neckline, exposed shoulders"
-            accessory = "gothic velvet choker, black ribbon"
+            costume = "tattered dark Victorian corset dress, off-shoulder lace, exposed collarbone"
+            accessory = "tight velvet ribbon choker, delicate silver chain"
         else:
-            costume = "elegant noble dress, plunging neckline"
-            accessory = "metal collar choker"
+            costume = "sleek gothic evening gown, exposed back, low neckline"
+            accessory = "ornate obsidian choker"
 
         return cls(
             hair_color=h_color,
             hair_style=h_style,
             eye_color=e_color,
             eye_shape=e_shape,
-            skin_tone="porcelain skin, smooth pale skin",
-            body_type="slender neck, bare collarbone, deep cleavage",
             base_costume=costume,
             signature_accessory=accessory
         )
 
 
 class VisualStateReactor:
-    """17대 텐서 활성 스포트라이트와 에고 압력 4단계에 따른 실시간 외모 변이 엔진 (Track 1 ⊗ Track 2)"""
+    """17대 텐서 활성 파동 및 4단계 에고 압력에 따른 4-Layer 실시간 비주얼 상태 변이 엔진"""
 
     @staticmethod
     def resolve_dynamic_layers(
@@ -90,57 +92,55 @@ class VisualStateReactor:
         stage: PressureStage,
         ego_resilience: float
     ) -> Dict[str, str]:
-        """텐서 자극 부위 및 에고 붕괴 단계에 따른 동적 태그 레이어(A/B/C/D) 산출"""
-        active_tensors = tensor_matrix.active_spotlights
-        levels = tensor_matrix.levels
+        """4단계 압력 및 활성 텐서에 따라 포즈/표정/의복상태/소마틱 레이어 동적 합성"""
+        spotlights = tensor_matrix.active_spotlights
 
-        cervical_lvl = levels.get("04_cervical", 0.0)
-        integ_lvl = levels.get("15_integumentary", 0.0)
-        thoracic_lvl = levels.get("06_thoracic", 0.0)
-        manual_lvl = levels.get("10_manual", 0.0)
-        femoral_lvl = levels.get("13_femoral", 0.0)
-
-        # Layer A: 자세 & 포즈 (Pose & Constraints)
-        pose_tags = ["upper body", "cowboy shot", "looking at viewer"]
-        if "04_cervical" in active_tensors or cervical_lvl > 0.2 or "10_manual" in active_tensors or manual_lvl > 0.2:
-            pose_tags.extend(["tilted head", "chin held", "constrained arms"])
-        elif "14_pedal" in active_tensors or "13_femoral" in active_tensors or femoral_lvl > 0.2:
-            pose_tags.extend(["kneeling", "leaning back", "arched back"])
-        else:
-            pose_tags.extend(["standing proudly", "subtle head tilt"])
-
-        # Layer B: 표정 & 감정선 (Expression & Blush by Pressure Stage)
-        expr_tags = []
+        # 1. Pose Layer (단계별 자세 붕괴)
         if stage == PressureStage.STAGE_1_ELASTIC:
-            expr_tags.extend(["haughty smirk", "condescending gaze", "subtle blush", "clenched teeth"])
+            pose = "standing haughtily, upright posture, chin raised, arms crossed or hand on hip"
         elif stage == PressureStage.STAGE_2_OVERLOAD:
-            expr_tags.extend(["breathless", "parted lips", "blushing heavily", "trembling lips", "furrowed brow"])
+            pose = "slight arched back, trembling stance, one hand clutching chest collar"
         elif stage == PressureStage.STAGE_3_PLASTIC:
-            expr_tags.extend(["heavy blush", "half-closed eyes", "teary eyes", "open mouth", "heavy breathing", "vulnerable expression"])
-        else:  # STAGE_4_SUCTION
-            expr_tags.extend(["intense blush", "bedroom eyes", "teary eyed", "drooling slightly", "parted glossy lips", "submissive gaze"])
-
-        # Layer C: 신체 생체 반응 (Somatic Reactions via Tensors)
-        somatic_tags = []
-        if cervical_lvl > 0.2:
-            somatic_tags.append("red mark on neck, tight collar pulling skin")
-        if integ_lvl > 0.2:
-            somatic_tags.append("sweat glistening on skin, flushed cheeks and collarbone")
-        if thoracic_lvl > 0.2:
-            somatic_tags.append("heaving chest, exposed cleavage, sweat on chest")
-
-        # Layer D: 의복 상태 (Costume Condition)
-        costume_cond = []
-        if stage in [PressureStage.STAGE_3_PLASTIC, PressureStage.STAGE_4_SUCTION]:
-            costume_cond.extend(["disheveled clothes", "partially unbuttoned collar", "off-shoulder", "torn fabric hint"])
-        elif stage == PressureStage.STAGE_2_OVERLOAD:
-            costume_cond.extend(["loosened collar", "wrinkled uniform"])
+            pose = "kneeling on floor, collapsed knees, head tilted back, helpless posture"
         else:
-            costume_cond.append("immaculate pristine uniform")
+            pose = "lying down, completely submissive pose, clinging helplessly, arched back"
+
+        # 2. Expression Layer (단계별 표정 붕괴)
+        if stage == PressureStage.STAGE_1_ELASTIC:
+            expression = "haughty cold smirk, sharp piercing glare, proud expression"
+        elif stage == PressureStage.STAGE_2_OVERLOAD:
+            expression = "flushed cheeks, slightly parted lips, trembling breath, confused wavering gaze"
+        elif stage == PressureStage.STAGE_3_PLASTIC:
+            expression = "heavy blush, teary glossy eyes, biting lower lip, heavy panting, pleading look"
+        else:
+            expression = "intense ahegao trance, heart eyes, heavy blush, open drooling lips, ecstatic surrender"
+
+        # 3. Costume Condition Layer (의복 흐트러짐 및 손상도)
+        if ego_resilience > 80.0:
+            costume_cond = "immaculate pristine uniform, tightly laced corset, fastened collar"
+        elif ego_resilience > 50.0:
+            costume_cond = "slightly unbuttoned collar, strained tight corset laces, slipping shoulder strap"
+        elif ego_resilience > 20.0:
+            costume_cond = "torn open neckline, loosened corset, disheveled fabric, exposed clavicle"
+        else:
+            costume_cond = "completely unlaced corset, disarrayed costume, bare shoulders, heavy cleavage exposure"
+
+        # 4. Somatics & Tensor Spotlights (17대 텐서 자극 부위 스포트라이트)
+        somatic_tags: List[str] = ["glistening lustrous skin"]
+        if "04_cervical" in spotlights:
+            somatic_tags.append("red hand mark on neck, tight choker indent, flushed throat")
+        if "15_integumentary" in spotlights or ego_resilience < 70.0:
+            somatic_tags.append("sweat droplets on collarbone and cleavage, radiating body heat")
+        if "03_vocal" in spotlights:
+            somatic_tags.append("glossy parted moist lips, visible panting breath")
+        if "05_clavicular" in spotlights or "06_thoracic" in spotlights:
+            somatic_tags.append("heaving chest, flushed clavicle, prominent collarbones")
+        if "02_ocular" in spotlights or stage in [PressureStage.STAGE_3_PLASTIC, PressureStage.STAGE_4_SUCTION]:
+            somatic_tags.append("dilated pupils, moist shimmering eyes, tear traces on cheeks")
 
         return {
-            "pose": ", ".join(pose_tags),
-            "expression": ", ".join(expr_tags),
-            "somatic": ", ".join(somatic_tags) if somatic_tags else "subtle skin sheen",
-            "costume_condition": ", ".join(costume_cond)
+            "pose": pose,
+            "expression": expression,
+            "costume_condition": costume_cond,
+            "somatic": ", ".join(somatic_tags)
         }
