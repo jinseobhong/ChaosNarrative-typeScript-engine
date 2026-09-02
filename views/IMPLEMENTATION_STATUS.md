@@ -23,4 +23,5 @@
 | **비주얼 합성 서비스** | `src/application/services/visual_synthesis_service.py` | `DONE` | Illustrious 6-Slot & FLUX & Pollinations |
 | **Gemini LLM 클라이언트**| `src/infrastructure/llm/gemini_llm_client.py` | `DONE` | API 연동 및 정규식 문학 정제기 검증 완료 |
 | **서사 오케스트레이터**| `src/application/services/narrative_orchestrator.py` | `DONE` | 턴 진행 및 Gemini LLM 서사 생성 연동 완료 |
-| **전사 단위 테스트** | `tests/unit/` | `DONE` | 25개 테스트 0.10초 100% 통과 |
+| **풀스택 인터랙티브 웹앱**| `src/presentation/web/` | `DONE` | FastAPI/HTTP REST & Tailwind Glassmorphism UI |
+| **전사 단위/통합 테스트**| `tests/unit/` | `DONE` | 25개 테스트 0.11초 100% 통과 |
