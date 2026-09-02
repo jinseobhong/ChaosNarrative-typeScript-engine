@@ -71,6 +71,9 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
         elif path.startswith("/api/characters/"):
             seed_hash = urllib.parse.unquote(path.split("/api/characters/")[1])
             self._handle_get_character(seed_hash)
+        elif path.startswith("/api/session/") and path.endswith("/history"):
+            session_id = urllib.parse.unquote(path.split("/api/session/")[1].replace("/history", ""))
+            self._handle_get_session_history(session_id)
         else:
             super().do_GET()
 
@@ -79,7 +82,9 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
         path = parsed_path.path
         body = self._read_json_body()
 
-        if path == "/api/session/turn":
+        if path == "/api/session/opening":
+            self._handle_session_opening(body)
+        elif path == "/api/session/turn":
             self._handle_session_turn(body)
         elif path == "/api/session/undo":
             self._handle_session_undo(body)
@@ -130,17 +135,59 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
             "ego_resilience": char.ego_resilience,
             "neural_pollution": char.neural_pollution,
             "tensors": char.tensor_matrix.levels,
+            "image_url": visual_url,
+            "traits": char.traits
+        })
+
+    def _handle_get_session_history(self, session_id: str) -> None:
+        turns = session_repo.get_all_turns(session_id)
+        result = []
+        for t in turns:
+            result.append({
+                "step": t.step,
+                "user_action": t.last_action,
+                "narrative_prose": t.narrative_prose,
+                "character_data": t.character_data,
+                "delta_logs": list(t.delta_logs),
+                "dynamic_choices": list(t.dynamic_choices)
+            })
+        self._send_json({"session_id": session_id, "turns": result})
+
+    def _handle_session_opening(self, body: Dict[str, Any]) -> None:
+        session_id = body.get("session_id", "DEFAULT_SESSION")
+        character_seed = body.get("character_seed", "#LILI-70G-BFFF")
+        res = orchestrator_service.get_or_create_opening(session_id, character_seed)
+        char = char_repo.get_by_seed(character_seed) or Character.create_lilith()
+        visual_url = visual_service.generate_pollinations_url(char)
+        self._send_json({
+            "session_id": res.session_id,
+            "step": res.step,
+            "character_name": res.character_name,
+            "stage": res.stage,
+            "ego_resilience": res.ego_resilience,
+            "neural_pollution": res.neural_pollution,
+            "active_spotlights": list(res.active_spotlights),
+            "tensor_levels": res.tensor_levels,
+            "narrative_prose": res.narrative_prose,
+            "delta_logs": list(res.delta_logs),
+            "dynamic_choices": list(res.dynamic_choices),
             "image_url": visual_url
         })
 
     def _handle_session_turn(self, body: Dict[str, Any]) -> None:
         session_id = body.get("session_id", "DEFAULT_SESSION")
         user_input = body.get("user_input", "")
-        req = TurnExecutionRequest(session_id=session_id, user_input=user_input)
+        character_seed = body.get("character_seed")
+        req = TurnExecutionRequest(
+            session_id=session_id,
+            user_input=user_input,
+            character_seed=character_seed
+        )
         res = orchestrator_service.execute_turn(req)
 
         # 턴 결과에 맞추어 실시간 변이된 비주얼 URL 합성
-        char = char_repo.get_by_seed(session_repo.get_session_seed(session_id) or "#LILI-70G-BFFF")
+        seed = character_seed or session_repo.get_session_seed(session_id) or "#LILI-70G-BFFF"
+        char = char_repo.get_by_seed(seed)
         visual_url = visual_service.generate_pollinations_url(char) if char else None
 
         self._send_json({

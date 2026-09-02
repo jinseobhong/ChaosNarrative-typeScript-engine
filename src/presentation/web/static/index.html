@@ -195,42 +195,14 @@
 
       <!-- Narrative Prose Stream -->
       <div class="flex-1 p-5 overflow-y-auto custom-scrollbar flex flex-col gap-4" id="chat-stream">
-        <!-- Initial Opening Prose -->
-        <div class="p-4 rounded-xl bg-black/30 border border-white/5 text-sm leading-relaxed text-gray-200">
-          <div class="text-[11px] font-mono text-abyss-gold font-bold mb-2 flex items-center gap-1.5">
-            <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-            <span>PROLOGUE SCENE</span>
-          </div>
-          <div id="narrative-body" class="whitespace-pre-wrap font-sans text-gray-200">
-밀실의 공기가 차갑게 내려앉는 가운데, 당신의 손길이 닿는 순간 릴리스의 전신에 은밀한 전율이 스쳐 지나갑니다.
-
-"...하, 건방진 손길이군요."
-
-그녀는 여전히 도도한 눈빛을 잃지 않으려 애쓰지만, 목덜미와 쇄골선 위로 붉게 번져가는 열감까지 숨기지는 못합니다. 가쁘게 내쉬는 숨결이 귓가를 스치며 방 안의 긴장감을 농밀하게 채웁니다.
-          </div>
-        </div>
+        <!-- Dynamically Populated Prose -->
       </div>
 
       <!-- 3+1 Dynamic Tactical Choices & Input Bar -->
       <div class="p-4 border-t border-white/10 bg-abyss-900/90 flex flex-col gap-3 shrink-0">
         <!-- 3+1 Quick Tactical Action Buttons -->
         <div class="grid grid-cols-2 gap-2" id="tactical-choices-container">
-          <button onclick="selectChoice('*\"괜찮아, 이제 다 끝났어.\" 라며 어깨를 살며시 감싸 안는다*')" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-abyss-gold/40 text-left text-xs transition group">
-            <span class="text-[10px] font-mono text-amber-400 block mb-0.5">[위로/애착]</span>
-            <span class="text-gray-200 group-hover:text-white">따스하게 안아주며 속삭이기</span>
-          </button>
-          <button onclick="selectChoice('*\"무릎 꿇어.\" 라며 목덜미의 초커를 강하게 쥔다*')" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-abyss-accent/40 text-left text-xs transition group">
-            <span class="text-[10px] font-mono text-rose-400 block mb-0.5">[지배/압박]</span>
-            <span class="text-gray-200 group-hover:text-white">초커를 쥔 채 강하게 짓누르기</span>
-          </button>
-          <button onclick="selectChoice('*귓가에 조심스레 입술을 스치며 달콤한 숨을 불어넣는다*')" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-abyss-violet/40 text-left text-xs transition group">
-            <span class="text-[10px] font-mono text-purple-400 block mb-0.5">[유혹/밀착]</span>
-            <span class="text-gray-200 group-hover:text-white">귓가에 입술을 대고 유혹하기</span>
-          </button>
-          <button onclick="selectChoice('*아무 말 없이 뒤로 한 걸음 물러서서 떨리는 전신을 관망한다*')" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/40 text-left text-xs transition group">
-            <span class="text-[10px] font-mono text-cyan-400 block mb-0.5">[침묵/관망]</span>
-            <span class="text-gray-200 group-hover:text-white">한 걸음 물러나 싸늘하게 응시하기</span>
-          </button>
+          <!-- Dynamically populated choices -->
         </div>
 
         <!-- Custom Free Text Input -->
@@ -424,7 +396,6 @@
     async function init() {
       lucide.createIcons();
       await fetchCharacters();
-      renderTensorsGrid({});
     }
 
     async function fetchCharacters() {
@@ -434,7 +405,7 @@
         characters = data.characters || [];
         renderCharacterPills();
         if (characters.length > 0) {
-          selectCharacter(characters[0].seed_hash);
+          await selectCharacter(characters[0].seed_hash);
         }
       } catch (e) {
         console.error("Failed to load characters", e);
@@ -451,10 +422,11 @@
       `).join('');
     }
 
-    function selectCharacter(seedHash) {
+    async function selectCharacter(seedHash) {
       activeCharacter = characters.find(c => c.seed_hash === seedHash) || characters[0];
       renderCharacterPills();
       updateCharacterUI();
+      await loadSessionChat(activeCharacter.seed_hash);
     }
 
     function updateCharacterUI() {
@@ -465,8 +437,8 @@
       document.getElementById('character-seed-label').innerText = activeCharacter.seed_hash;
       document.getElementById('character-stage-label').innerText = activeCharacter.stage || "Stage 1 (탄성 저항)";
       
-      const ego = activeCharacter.ego_resilience || 100.0;
-      const pollution = activeCharacter.neural_pollution || 0.0;
+      const ego = activeCharacter.ego_resilience !== undefined ? activeCharacter.ego_resilience : 100.0;
+      const pollution = activeCharacter.neural_pollution !== undefined ? activeCharacter.neural_pollution : 0.0;
       document.getElementById('ego-value').innerText = `${ego.toFixed(1)}%`;
       document.getElementById('ego-bar').style.width = `${ego}%`;
       document.getElementById('pollution-value').innerText = `${pollution.toFixed(1)}%`;
@@ -498,6 +470,89 @@
       }).join('');
     }
 
+    async function loadSessionChat(seedHash) {
+      const sessionId = `SESSION_${seedHash}`;
+      try {
+        // 1. 기존 대화 기록 조회
+        const histRes = await fetch(`/api/session/${encodeURIComponent(sessionId)}/history`);
+        const histData = await histRes.json();
+        
+        if (histData.turns && histData.turns.length > 0) {
+          renderFullChatHistory(histData.turns);
+          const lastTurn = histData.turns[histData.turns.length - 1];
+          turnCount = lastTurn.step;
+          document.getElementById('turn-step-counter').innerText = `Turn Step ${lastTurn.step}`;
+          if (lastTurn.dynamic_choices) {
+            renderChoices(lastTurn.dynamic_choices);
+          }
+        } else {
+          // 2. 대화 기록이 없으면 신규 오프닝 프롤로그 로드
+          const openRes = await fetch('/api/session/opening', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, character_seed: seedHash })
+          });
+          const openData = await openRes.json();
+          renderSinglePrologue(openData.narrative_prose);
+          turnCount = openData.step;
+          document.getElementById('turn-step-counter').innerText = `Turn Step ${openData.step}`;
+          if (openData.dynamic_choices) {
+            renderChoices(openData.dynamic_choices);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load session chat", err);
+      }
+    }
+
+    function renderSinglePrologue(prose) {
+      const stream = document.getElementById('chat-stream');
+      stream.innerHTML = `
+        <div class="p-4 rounded-xl bg-black/30 border border-white/5 text-sm leading-relaxed text-gray-200">
+          <div class="text-[11px] font-mono text-abyss-gold font-bold mb-2 flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><i data-lucide="book-open" class="w-3.5 h-3.5"></i> PROLOGUE SCENE</span>
+            <span class="text-[10px] text-gray-400">Step 1</span>
+          </div>
+          <div class="whitespace-pre-wrap font-sans text-gray-200">${prose}</div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    function renderFullChatHistory(turns) {
+      const stream = document.getElementById('chat-stream');
+      stream.innerHTML = turns.map(t => {
+        if (t.step === 1 && t.user_action === "[OPENING SCENE]") {
+          return `
+            <div class="p-4 rounded-xl bg-black/30 border border-white/5 text-sm leading-relaxed text-gray-200">
+              <div class="text-[11px] font-mono text-abyss-gold font-bold mb-2 flex items-center justify-between">
+                <span class="flex items-center gap-1.5"><i data-lucide="book-open" class="w-3.5 h-3.5"></i> PROLOGUE SCENE</span>
+                <span class="text-[10px] text-gray-400">Step 1</span>
+              </div>
+              <div class="whitespace-pre-wrap font-sans text-gray-200">${t.narrative_prose}</div>
+            </div>
+          `;
+        }
+        return `
+          <div class="flex justify-end">
+            <div class="max-w-[80%] p-3 rounded-2xl rounded-tr-none bg-abyss-accent/20 border border-abyss-accent/40 text-xs text-white">
+              <div class="text-[10px] font-mono text-rose-300 font-bold mb-1">PLAYER ACTION (Step ${t.step})</div>
+              <div>${t.user_action}</div>
+            </div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/30 border border-white/5 text-sm leading-relaxed text-gray-200">
+            <div class="text-[11px] font-mono text-abyss-gold font-bold mb-2 flex items-center justify-between">
+              <span class="flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> ${activeCharacter?.name || '캐릭터'}</span>
+              <span class="text-[10px] text-gray-400">Step ${t.step}</span>
+            </div>
+            <div class="whitespace-pre-wrap font-sans text-gray-200">${t.narrative_prose}</div>
+          </div>
+        `;
+      }).join('');
+      stream.scrollTop = stream.scrollHeight;
+      lucide.createIcons();
+    }
+
     async function handleSendAction(e) {
       e.preventDefault();
       const input = document.getElementById('user-action-input');
@@ -523,6 +578,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             session_id: `SESSION_${activeCharacter.seed_hash}`,
+            character_seed: activeCharacter.seed_hash,
             user_input: userAction
           })
         });
@@ -555,6 +611,7 @@
         }
       } catch (err) {
         console.error("Turn execution failed", err);
+        alert("서사 생성 요청에 실패했습니다. 백엔드 콘솔 로그를 확인해 주세요.");
       } finally {
         btn.disabled = false;
         btn.innerHTML = `<span>실행</span><i data-lucide="send" class="w-4 h-4"></i>`;
@@ -576,13 +633,14 @@
         <div class="p-4 rounded-xl bg-black/30 border border-white/5 text-sm leading-relaxed text-gray-200">
           <div class="text-[11px] font-mono text-abyss-gold font-bold mb-2 flex items-center justify-between">
             <span class="flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> ${activeCharacter.name} • ${activeCharacter.stage}</span>
-            <span class="text-[10px] text-gray-400">0.02s Live Response</span>
+            <span class="text-[10px] text-gray-400">Live Response</span>
           </div>
           <div class="whitespace-pre-wrap font-sans text-gray-200">${prose}</div>
         </div>
       `;
       stream.innerHTML += userBubble + aiBubble;
       stream.scrollTop = stream.scrollHeight;
+      lucide.createIcons();
     }
 
     function renderChoices(choices) {
@@ -615,7 +673,7 @@
         const data = await res.json();
         if (data.success) {
           alert(`Step ${data.current_step} 시점으로 성공적으로 롤백되었습니다!`);
-          location.reload();
+          await loadSessionChat(activeCharacter.seed_hash);
         } else {
           alert(data.message || "되돌릴 턴이 없습니다.");
         }

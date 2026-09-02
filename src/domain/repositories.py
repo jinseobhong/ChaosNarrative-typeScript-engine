@@ -42,6 +42,10 @@ class NarrativeSessionRepository(Protocol):
         """최신 턴 스냅샷 조회"""
         ...
 
+    def get_all_turns(self, session_id: str) -> List[TurnSnapshot]:
+        """세션의 모든 턴 스냅샷 순차 조회"""
+        ...
+
     def rollback_turn(self, session_id: str) -> Optional[TurnSnapshot]:
         """직전 턴으로 원자적 롤백 (Undo)"""
         ...

@@ -1,21 +1,22 @@
 """
-src/application/dtos.py — 유스케이스 요청/응답 DTO (Data Transfer Objects)
+src/application/dtos.py — 애플리케이션 계층 데이터 전송 객체 (DTO)
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 
 @dataclass(frozen=True)
 class TurnExecutionRequest:
-    """턴 진행 요청 DTO"""
+    """턴 실행 요청 DTO"""
     session_id: str
     user_input: str
+    character_seed: Optional[str] = None
 
 
 @dataclass(frozen=True)
 class TurnExecutionResponse:
-    """턴 진행 응답 DTO"""
+    """턴 실행 결과 응답 DTO"""
     session_id: str
     step: int
     character_name: str
@@ -25,16 +26,17 @@ class TurnExecutionResponse:
     active_spotlights: Tuple[str, ...]
     tensor_levels: Dict[str, float]
     narrative_prose: str
-    delta_logs: Tuple[str, ...]
-    dynamic_choices: Tuple[Dict[str, str], ...]
+    delta_logs: Tuple[str, ...] = field(default_factory=tuple)
+    dynamic_choices: Tuple[Dict[str, str], ...] = field(default_factory=tuple)
+    image_url: Optional[str] = None
 
 
 @dataclass(frozen=True)
 class UndoResponse:
-    """되돌리기(Undo) 응답 DTO"""
+    """턴 되돌리기(Undo) 응답 DTO"""
     session_id: str
     success: bool
     current_step: int
     character_name: str
     stage: str
-    message: str
+    message: str = ""
