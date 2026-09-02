@@ -158,7 +158,11 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
         character_seed = body.get("character_seed", "#LILI-70G-BFFF")
         res = orchestrator_service.get_or_create_opening(session_id, character_seed)
         char = char_repo.get_by_seed(character_seed) or Character.create_lilith()
-        visual_url = visual_service.generate_pollinations_url(char)
+        visual_url = visual_service.generate_pollinations_url(
+            character=char,
+            narrative_prose=res.narrative_prose,
+            last_action="[OPENING SCENE]"
+        )
         self._send_json({
             "session_id": res.session_id,
             "step": res.step,
@@ -185,10 +189,14 @@ class AbyssWebHandler(SimpleHTTPRequestHandler):
         )
         res = orchestrator_service.execute_turn(req)
 
-        # 턴 결과에 맞추어 실시간 변이된 비주얼 URL 합성
+        # 서사와 씬 맥락에 종속된 실시간 비주얼 URL 합성
         seed = character_seed or session_repo.get_session_seed(session_id) or "#LILI-70G-BFFF"
         char = char_repo.get_by_seed(seed)
-        visual_url = visual_service.generate_pollinations_url(char) if char else None
+        visual_url = visual_service.generate_pollinations_url(
+            character=char,
+            narrative_prose=res.narrative_prose,
+            last_action=user_input
+        ) if char else None
 
         self._send_json({
             "session_id": res.session_id,
