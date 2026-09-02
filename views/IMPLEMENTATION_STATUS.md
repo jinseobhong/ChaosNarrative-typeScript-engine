@@ -18,5 +18,6 @@
 | **캐릭터 불변 모델** | `src/domain/character/models.py` | `DONE` | `@dataclass(frozen=True)` 불변 모델 검증 |
 | **화행 및 서사 모델** | `src/domain/narrative/` | `DONE` | 7대 화행 & 롤백 스냅샷 정의 완료 |
 | **도메인 단위 테스트** | `tests/unit/domain/` | `DONE` | 6개 AAA 단위 테스트 100% 통과 |
-| **SQLite 영구 저장소** | `src/infrastructure/` | `TODO` | Step 2 대기 |
+| **SQLite 영구 저장소** | `src/infrastructure/` | `DONE` | WAL 모드 & 턴 롤백 스택 검증 완료 |
+| **인프라 단위 테스트** | `tests/unit/infrastructure/` | `DONE` | 저장/조회/롤백 테스트 100% 통과 |
 | **서사 오케스트레이터**| `src/application/` | `TODO` | Step 3 대기 |

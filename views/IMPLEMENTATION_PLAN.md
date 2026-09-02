@@ -9,43 +9,38 @@
 
 ---
 
-# [Plan] Phase 1 Step 1: 순수 도메인 생체 역학 및 17대 텐서 불변 모델 구축
+# [Plan] Phase 1 Step 2: SQLite WAL 캐릭터 & 서사 영구 저장소 구축
 
 ## 📌 작업 개요
-- **목표**: `legacy/`에서 추출한 17대 신체 텐서, 로웬 신체갑주, 4단계 압력 궤적 및 캐릭터 불변 모델을 Clean Architecture 순수 도메인 계층(`src/domain/`)에 구축하고 100% AAA 단위 테스트로 입증한다.
-- **적용 규칙**: PEP 484 정적 타입, `@dataclass(frozen=True)` 불변 패턴, 외부 의존성 0% 순수 도메인.
+- **목표**: 도메인 엔티티(`Character`, `TurnSnapshot`, `ActionFrame`)를 안전하게 영구 보존하고 원자적 롤백을 지원하는 SQLite WAL 기반 DDL 스키마 및 Repository 어댑터를 구축한다.
+- **적용 규칙**: 의존성 역전 원칙(DIP), 도메인 인터페이스 분리, WAL 모드 트랜잭션 보장.
 
 ---
 
 ## 🛠️ 변경 및 생성 대상 파일 목록
 
-### 1. 도메인 계층 (Pure Domain Layer)
-- **[NEW]** [`src/domain/character/enums.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/domain/character/enums.py): `LowenArmor`, `PressureStage`, `RelationalVector`
-- **[NEW]** [`src/domain/character/tensor.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/domain/character/tensor.py): `TENSOR_REGISTRY` (17대 텐서), `TensorMatrix` (불변 운동 연쇄 전이)
-- **[NEW]** [`src/domain/character/models.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/domain/character/models.py): `SomaticGene`, `Character` (순수 불변 엔티티)
-- **[NEW]** [`src/domain/narrative/enums.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/domain/narrative/enums.py): `SpeechAct` (7대 화행 의도)
-- **[NEW]** [`src/domain/narrative/models.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/domain/narrative/models.py): `ActionFrame`, `TurnSnapshot` (원자적 롤백 스택)
+### 1. 도메인 저장소 인터페이스 (src/domain/)
+- **[NEW]** [`src/domain/repositories.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/domain/repositories.py): `CharacterRepository`, `NarrativeSessionRepository` 프로토콜 인터페이스
 
-### 2. 단위 테스트 계층 (Unit Tests)
-- **[NEW]** [`tests/unit/domain/test_tensor_matrix.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/tests/unit/domain/test_tensor_matrix.py): 17대 텐서 외력 자극 및 운동 연쇄 파동 전이 검증 (AAA 패턴)
-- **[NEW]** [`tests/unit/domain/test_character.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/tests/unit/domain/test_character.py): 캐릭터 불변성, 압력 단계(Stage 1~4) 전이 검증 (AAA 패턴)
+### 2. 인프라 계층 (src/infrastructure/)
+- **[MODIFY]** [`src/infrastructure/database/schema.sql`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/infrastructure/database/schema.sql): `characters`, `narrative_sessions`, `turn_history` DDL 테이블 추가
+- **[NEW]** [`src/infrastructure/repositories/sqlite_character_repo.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/infrastructure/repositories/sqlite_character_repo.py): 캐릭터 SQLite 저장소 어댑터
+- **[NEW]** [`src/infrastructure/repositories/sqlite_narrative_repo.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/infrastructure/repositories/sqlite_narrative_repo.py): 서사 세션 및 턴 롤백 어댑터
+
+### 3. 단위 테스트 계층 (tests/unit/infrastructure/)
+- **[NEW]** [`tests/unit/infrastructure/test_character_repository.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/tests/unit/infrastructure/test_character_repository.py): 캐릭터 저장/조회/갱신 AAA 단위 테스트
+- **[NEW]** [`tests/unit/infrastructure/test_narrative_repository.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/tests/unit/infrastructure/test_narrative_repository.py): 턴 기록 및 원자적 Undo 롤백 AAA 단위 테스트
 
 ---
 
 ## 💡 시스템 영향도 심층 분석 (3-Tier Deep-Dive)
 
-#### 1. 💾 데이터 흐름 관점 (Pure Functional Immutability)
-* 모든 텐서 및 캐릭터 상태 변경은 기존 인스턴스를 변형하지 않고 **새로운 불변 객체(New Immutable Instance)**를 반환하여, 롤플레이 진행 중 발생할 수 있는 상태 꼬임 및 동시성 데이터 오염을 0%로 차단합니다.
+#### 1. 💾 데이터 흐름 관점 (Clean 4-Tier DIP Architecture)
+* 도메인 계층은 SQLite의 존재를 전혀 알지 못하며, 오직 `CharacterRepository` 인터페이스에만 의존합니다. 인프라 어댑터가 직렬화(JSON)와 역직렬화를 전담하여 도메인 순수성을 100% 보존합니다.
 
 #### 2. 🛡️ 방어된 구체적 결함 시나리오 (Prevented Failures)
-* **레거시 가변 딕셔너리 오염 버그 100% 방어**:
-  과거 `character.py`에서 딕셔너리를 직접 조작하여 발생하던 '되돌리기(Undo) 시 과거 상태 파괴' 결함이 불변 스냅샷 구조를 통해 물리적으로 완벽히 방어됩니다.
+* **동시성 락 및 턴 롤백 시 데이터 유실 방어**:
+  WAL 모드와 외래키(FK) CASCADE 제약을 적용하여, 롤백 시 단 1개의 고아(Orphan) 레코드도 남지 않고 원자적으로 안전하게 처리됩니다.
 
 #### 3. 🧑‍💻 1인 개발자 체감 변화 (DX)
-* `py -3 .agents/scripts/run_checks.py` 실행 시 0.001초 만에 텐서 역학 및 캐릭터 상태 전이 공식을 100% 자동 검증할 수 있습니다.
-
----
-
-## 🧪 검증 계획 (Verification Plan)
-1. **단위 테스트**: `py -3 -m unittest discover -s tests/unit -p "test_*.py" -v`
-2. **원클릭 전사 무결성 검증**: `py -3 .agents/scripts/run_checks.py` (Exit Code 0 필수)
+* 언제든 캐릭터를 저장하고 직전 턴으로 원터치 되돌리기(Undo)할 수 있는 완벽한 세션 매니저를 갖추게 됩니다.
