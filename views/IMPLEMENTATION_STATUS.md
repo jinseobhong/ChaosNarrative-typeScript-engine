@@ -17,7 +17,7 @@
 | **로웬 갑주 & 압력 궤적**| `src/domain/character/enums.py` | `DONE` | 5대 갑주 & 4단계 궤적 정의 완료 |
 | **캐릭터 불변 모델** | `src/domain/character/models.py` | `DONE` | `@dataclass(frozen=True)` 불변 모델 검증 |
 | **화행 및 서사 모델** | `src/domain/narrative/` | `DONE` | 7대 화행 & 롤백 스냅샷 정의 완료 |
-| **도메인 단위 테스트** | `tests/unit/domain/` | `DONE` | 6개 AAA 단위 테스트 100% 통과 |
 | **SQLite 영구 저장소** | `src/infrastructure/` | `DONE` | WAL 모드 & 턴 롤백 스택 검증 완료 |
-| **인프라 단위 테스트** | `tests/unit/infrastructure/` | `DONE` | 저장/조회/롤백 테스트 100% 통과 |
-| **서사 오케스트레이터**| `src/application/` | `TODO` | Step 3 대기 |
+| **화행 파서 서비스** | `src/application/services/action_parser_service.py` | `DONE` | 정규식 & 17대 텐서 매핑 검증 완료 |
+| **서사 오케스트레이터**| `src/application/services/narrative_orchestrator.py` | `DONE` | 턴 진행 및 Undo 롤백 검증 완료 |
+| **전사 단위 테스트** | `tests/unit/` | `DONE` | 16개 테스트 0.10초 100% 통과 |

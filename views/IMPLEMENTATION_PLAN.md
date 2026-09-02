@@ -9,38 +9,35 @@
 
 ---
 
-# [Plan] Phase 1 Step 2: SQLite WAL 캐릭터 & 서사 영구 저장소 구축
+# [Plan] Phase 1 Step 3: Application 계층 (화행 파서 및 서사 턴 오케스트레이터) 구축
 
 ## 📌 작업 개요
-- **목표**: 도메인 엔티티(`Character`, `TurnSnapshot`, `ActionFrame`)를 안전하게 영구 보존하고 원자적 롤백을 지원하는 SQLite WAL 기반 DDL 스키마 및 Repository 어댑터를 구축한다.
-- **적용 규칙**: 의존성 역전 원칙(DIP), 도메인 인터페이스 분리, WAL 모드 트랜잭션 보장.
+- **목표**: 사용자의 자연어 발화/행동을 17대 텐서 자극치로 정밀 파싱하는 `ActionParserService`와, 턴 진행 및 원자적 Undo 롤백을 조율하는 `NarrativeOrchestratorService`를 구축한다.
+- **적용 규칙**: 도메인/인프라 의존성 주입(DI), 0토큰 결정론적 상태 전이, 3+1 타겟팅 동적 선택지 생성.
 
 ---
 
 ## 🛠️ 변경 및 생성 대상 파일 목록
 
-### 1. 도메인 저장소 인터페이스 (src/domain/)
-- **[NEW]** [`src/domain/repositories.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/domain/repositories.py): `CharacterRepository`, `NarrativeSessionRepository` 프로토콜 인터페이스
+### 1. 애플리케이션 DTO 및 서비스 (src/application/)
+- **[NEW]** [`src/application/dtos.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/application/dtos.py): `TurnExecutionRequest`, `TurnExecutionResponse`, `UndoResponse`
+- **[NEW]** [`src/application/services/action_parser_service.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/application/services/action_parser_service.py): 자연어 대사/지문 분할, 7대 화행 의도 분류, 17대 텐서 매핑 파서
+- **[NEW]** [`src/application/services/narrative_orchestrator.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/application/services/narrative_orchestrator.py): 서사 턴 진행, 상태 전이, 3+1 동적 선택지 생성 및 원자적 롤백 서비스
 
-### 2. 인프라 계층 (src/infrastructure/)
-- **[MODIFY]** [`src/infrastructure/database/schema.sql`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/infrastructure/database/schema.sql): `characters`, `narrative_sessions`, `turn_history` DDL 테이블 추가
-- **[NEW]** [`src/infrastructure/repositories/sqlite_character_repo.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/infrastructure/repositories/sqlite_character_repo.py): 캐릭터 SQLite 저장소 어댑터
-- **[NEW]** [`src/infrastructure/repositories/sqlite_narrative_repo.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/src/infrastructure/repositories/sqlite_narrative_repo.py): 서사 세션 및 턴 롤백 어댑터
-
-### 3. 단위 테스트 계층 (tests/unit/infrastructure/)
-- **[NEW]** [`tests/unit/infrastructure/test_character_repository.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/tests/unit/infrastructure/test_character_repository.py): 캐릭터 저장/조회/갱신 AAA 단위 테스트
-- **[NEW]** [`tests/unit/infrastructure/test_narrative_repository.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/tests/unit/infrastructure/test_narrative_repository.py): 턴 기록 및 원자적 Undo 롤백 AAA 단위 테스트
+### 2. 단위 테스트 계층 (tests/unit/application/)
+- **[NEW]** [`tests/unit/application/test_action_parser.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/tests/unit/application/test_action_parser.py): 대사/지문 분할 및 텐서 자극 매핑 AAA 단위 테스트
+- **[NEW]** [`tests/unit/application/test_narrative_orchestrator.py`](file:///d:/Development/projects/antigravity/아키텍트%20설계안/tests/unit/application/test_narrative_orchestrator.py): 턴 실행 및 직전 턴 Undo 롤백 조율 AAA 단위 테스트
 
 ---
 
 ## 💡 시스템 영향도 심층 분석 (3-Tier Deep-Dive)
 
-#### 1. 💾 데이터 흐름 관점 (Clean 4-Tier DIP Architecture)
-* 도메인 계층은 SQLite의 존재를 전혀 알지 못하며, 오직 `CharacterRepository` 인터페이스에만 의존합니다. 인프라 어댑터가 직렬화(JSON)와 역직렬화를 전담하여 도메인 순수성을 100% 보존합니다.
+#### 1. 💾 데이터 흐름 관점 (Application Orchestration Flow)
+* `User Input ➔ ActionParserService (ActionFrame) ➔ Character.apply_stimulus ➔ SqliteNarrativeSessionRepository.record_turn ➔ TurnExecutionResponse` 흐름이 완전한 단방향으로 흐르며, 부수 효과가 철저히 통제됩니다.
 
 #### 2. 🛡️ 방어된 구체적 결함 시나리오 (Prevented Failures)
-* **동시성 락 및 턴 롤백 시 데이터 유실 방어**:
-  WAL 모드와 외래키(FK) CASCADE 제약을 적용하여, 롤백 시 단 1개의 고아(Orphan) 레코드도 남지 않고 원자적으로 안전하게 처리됩니다.
+* **비정형 자연어 입력 시 런타임 크래시 0%**:
+  사용자가 대사만 입력하거나 지문만 입력하거나 복합 입력을 하더라도 정규식과 방어적 폴백(Fallback)을 통해 항상 유효한 `ActionFrame`을 보장합니다.
 
 #### 3. 🧑‍💻 1인 개발자 체감 변화 (DX)
-* 언제든 캐릭터를 저장하고 직전 턴으로 원터치 되돌리기(Undo)할 수 있는 완벽한 세션 매니저를 갖추게 됩니다.
+* 복잡한 LLM 호출 없이도 순수 파이썬만으로 0.001초 만에 캐릭터의 긴장도 전이와 반응 문장을 시뮬레이션할 수 있습니다.
