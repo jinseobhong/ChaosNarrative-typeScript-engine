@@ -1,5 +1,5 @@
 """
-tests/e2e/test_full_system_e2e.py — Abyss Empire 전사 종단간(E2E) 시나리오 무결성 검증
+tests/e2e/test_full_system_e2e.py — 프론트엔드 UI 서빙 및 백엔드 REST API 완전 결합 E2E 검증 (No Mock)
 """
 
 import unittest
@@ -12,32 +12,56 @@ from src.presentation.web.server import ThreadedHTTPServer, AbyssWebHandler
 
 
 class TestFullSystemE2E(unittest.TestCase):
-    """전사 4계층 및 Dify 17-Node 파이프라인 E2E 시나리오 전수 검증"""
+    """프론트엔드 정적 파일(HTML/JS) 서빙과 백엔드 4계층 REST API 간 실환경 결합 전수 검증"""
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.port = 8898
+        cls.port = 8896
         cls.server = ThreadedHTTPServer(("127.0.0.1", cls.port), AbyssWebHandler)
         cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.server_thread.start()
-        time.sleep(0.1)
+        time.sleep(0.15)
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls.server.shutdown()
         cls.server.server_close()
 
-    def test_e2e_full_lifecycle_and_http_endpoints(self):
-        session_id = f"E2E_SESSION_{int(time.time() * 1000)}"
+    def test_e2e_frontend_html_delivery_and_dom_integrity(self):
+        """1. 프론트엔드 SPA HTML(index.html)이 실제 HTTP 200으로 완전하게 서빙되는지 검증"""
+        url_root = f"http://127.0.0.1:{self.port}/"
+        with urllib.request.urlopen(url_root, timeout=5.0) as resp:
+            html_content = resp.read().decode("utf-8")
+            status_code = resp.status
 
-        # 1. 캐릭터 목록 조회 API 검증
+        # Assert (HTTP 200 및 프론트엔드 핵심 DOM 엘리먼트 실재 확인)
+        self.assertEqual(status_code, 200)
+        self.assertGreater(len(html_content), 10000)
+        self.assertIn("ABYSS EMPIRE", html_content)
+        self.assertIn("character-portrait", html_content)
+        self.assertIn("tensors-container", html_content)
+        self.assertIn("dify-studio-modal", html_content)
+        self.assertIn("chat-stream", html_content)
+        self.assertIn("tactical-choices-container", html_content)
+        self.assertIn("config-modal", html_content)
+
+    def test_e2e_full_backend_rest_api_lifecycle(self):
+        """2. 목업 없는 실제 데이터베이스 및 LLM 파이프라인 REST API 라이프사이클 검증"""
+        session_id = f"E2E_REAL_SESSION_{int(time.time() * 1000)}"
+
+        # A. 캐릭터 목록 조회 API 검증 (실제 RDB 조회)
         url_chars = f"http://127.0.0.1:{self.port}/api/characters"
         with urllib.request.urlopen(url_chars, timeout=5.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
+        
         self.assertIn("characters", data)
         self.assertGreaterEqual(len(data["characters"]), 4)
+        lilith = next((c for c in data["characters"] if c["name"] == "릴리스"), None)
+        self.assertIsNotNone(lilith)
+        self.assertIn("image_url", lilith)
+        self.assertTrue(lilith["image_url"].startswith("https://image.pollinations.ai/prompt/"))
 
-        # 2. 턴 1: 릴리스 목덜미 초커 자극 실행
+        # B. 턴 1: 릴리스 목덜미 초커 자극 실행 (자연어 파싱 ➔ 17 텐서 계산 ➔ 서사 생성 ➔ RDB 적재)
         url_turn = f"http://127.0.0.1:{self.port}/api/session/turn"
         payload_turn1 = {
             "session_id": session_id,
@@ -57,8 +81,9 @@ class TestFullSystemE2E(unittest.TestCase):
         self.assertGreater(turn1_res["tensor_levels"]["04_cervical"], 0.0)
         self.assertIn("narrative_prose", turn1_res)
         self.assertIn("image_url", turn1_res)
+        self.assertGreater(len(turn1_res["dynamic_choices"]), 0)
 
-        # 3. 턴 2: 추가 스킨십 및 체온 자극
+        # C. 턴 2: 뺨과 쇄골 접촉 자극 (10_manual 손길)
         payload_turn2 = {
             "session_id": session_id,
             "user_input": '*뺨과 쇄골을 부드럽게 쓰다듬으며 체온을 전한다*'
@@ -73,8 +98,9 @@ class TestFullSystemE2E(unittest.TestCase):
             turn2_res = json.loads(resp.read().decode("utf-8"))
 
         self.assertEqual(turn2_res["step"], 2)
+        self.assertIn("10_manual", turn2_res["active_spotlights"])
 
-        # 4. 원자적 롤백 (Undo) 실행 ➔ Step 1로 정확히 복원
+        # D. 원자적 롤백 (Undo) 실행 ➔ Step 1로 정확히 복원
         url_undo = f"http://127.0.0.1:{self.port}/api/session/undo"
         req_undo = urllib.request.Request(
             url_undo,
@@ -88,7 +114,7 @@ class TestFullSystemE2E(unittest.TestCase):
         self.assertTrue(undo_res["success"])
         self.assertEqual(undo_res["current_step"], 1)
 
-        # 5. Dify 25대 마스터 명세 컴파일 API 검증
+        # E. Dify 25대 마스터 명세 컴파일 API 검증
         url_dify = f"http://127.0.0.1:{self.port}/api/dify/compile-spec"
         req_dify = urllib.request.Request(
             url_dify,
