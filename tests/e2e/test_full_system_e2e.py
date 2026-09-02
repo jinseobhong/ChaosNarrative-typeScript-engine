@@ -16,7 +16,7 @@ class TestFullSystemE2E(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.port = 8896
+        cls.port = 8895
         cls.server = ThreadedHTTPServer(("127.0.0.1", cls.port), AbyssWebHandler)
         cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.server_thread.start()
@@ -114,19 +114,19 @@ class TestFullSystemE2E(unittest.TestCase):
         self.assertTrue(undo_res["success"])
         self.assertEqual(undo_res["current_step"], 1)
 
-        # E. Dify 25대 마스터 명세 컴파일 API 검증
+        # E. Dify 17-Node 명세 컴파일 API 검증
         url_dify = f"http://127.0.0.1:{self.port}/api/dify/compile-spec"
         req_dify = urllib.request.Request(
             url_dify,
-            data=json.dumps({"vector_id": "V1", "seed_hash": "#LILI-70G-BFFF"}).encode("utf-8"),
+            data=json.dumps({"vector_id": "V1", "approved_baseline": {"domain_mode": "ROLEPLAY_INTERACTION", "seed_hash": "#LILI-70G-BFFF", "boundary": {"target_domain": "릴리스"}}}).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST"
         )
         with urllib.request.urlopen(req_dify, timeout=5.0) as resp:
             dify_res = json.loads(resp.read().decode("utf-8"))
 
-        self.assertIn("compiled_prompt", dify_res)
-        self.assertIn("MASTER ROLEPLAY INSTRUCTION: 릴리스", dify_res["compiled_prompt"])
+        self.assertEqual(dify_res["status"], "READY_FOR_INTEGRATION")
+        self.assertIn("display_diff", dify_res)
 
 
 if __name__ == "__main__":
