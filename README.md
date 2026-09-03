@@ -1,63 +1,51 @@
-# 🚀 Antigravity AI Pair Engineering Master Starter Kit
-> **1인 개발자를 위한 초생산성 AI 거버넌스 운영체제 & 플러그앤플레이 템플릿**
+# 🌌 ChaosNarrative-typeScript-engine
 
-| 항목 | 내용 |
-| :--- | :--- |
-| **템플릿 ID** | `ANTIGRAVITY-STARTER-KIT-v1.0` |
-| **핵심 목적** | 1인 개발 + AI 페어 프로그래밍 환경에서 100% 결함 없는 고신뢰성 소프트웨어 고속 개발 |
-| **지원 아키텍처** | `Clean Architecture 4-Tier Pattern` + `Deterministic AI Constitution` |
-| **최종 갱신일** | `2026-09-02` |
+> **5차원 비선형 상호 결합 카오스 섭동계(5D Coupled Chaos)와 3단계 시냅스 신경망 기억층을 탑재한 차세대 전천후 인터랙티브 웹소설 & 롤플레잉 서사 엔진**
 
 ---
 
-## 📌 1. 이 템플릿의 가치와 역할
+## 🏛️ Key Highlights (핵심 아키텍처)
 
-본 저장소는 새로운 제품(웹, 모바일, 게임, SaaS, AI 파이프라인 등)을 만들 때 **`.agents/` 폴더와 거버넌스 헌법을 그대로 이식(Drop-in)하여 사용할 수 있는 마스터 스타터 킷**입니다.
+1. ⚡ **5차원 비선형 상호 결합 카오스 섭동계 (5D Coupled Dynamical System)**
+   - $\mathbf{S}(t) = [DOM, EROS, TRUST, FRACTURE, TAINT]^T$
+   - 에고 붕괴 S-커브, 리비도 시그모이드 증폭, 그리고 이성과 쾌락의 충돌을 수학적으로 모델링한 **가우시안 벨 커브(Bell-curve) 공명 스파크** 탑재.
 
-### 🌟 4대 핵심 역량
-1. **🔴 최고 헌법 거버넌스 (`GEMINI.md`)**: 무단 코드 수정 방지, 사전 승인 게이트, 터미널 실측 AI Proof 의무화.
-2. **🏛️ 7대 전문 규격서 (`.agents/CONVENTIONS.md`)**: 코딩 표준, 문서 서식, 대화 톤앤매너, 3계층 시스템 영향도 분석, Git 형상 관리.
-3. **🚀 원클릭 전사 무결성 검증기 (`run_checks.py`)**: 0.4초 만에 단위 테스트 + E2E + 뷰 대칭성 + 12대 문서 DB 스냅샷 완결.
-4. **👁️ 5대 실시간 관측 창구 (`views/`)**: 프로젝트의 현재 상태(SSOT)를 인간과 AI가 완벽히 동기화.
+2. 🧠 **3단계 뇌신경망 분리 기억 원장 (3-Tier Synaptic Memory Triad)**
+   - **$M_1$ Primitive Reflex (즉각 반사)**: 1턴 즉각 생체 신경 반사.
+   - **$M_2$ Somatic Echo Buffer (단기 잔향)**: 최근 1~4턴 동안 누적된 감각 및 온기 잔향 (히스테리시스 지연 적분).
+   - **$M_3$ Cognitive Ledger (장기 각인)**: 영구 누적되는 심리적 부채, 비밀 및 트라우마 원장.
 
----
+3. ☕ **전천후 만능 서사 적응 & 티키타카 (Omni-Situational Versatility)**
+   - 인위적인 모드 분할 없이 **[일상 잡담/만담 ↔ 은근한 썸/밀당 ↔ 고밀도 심리전/성애]** 전 스펙트럼을 자연스럽게 넘나드는 단일 유기적 서사 엔진.
+   - 캐릭터의 무기력한 복종을 배제하고 팽팽한 핑퐁 대화와 오뚝이 반격을 유도하는 밀당 헌법 적용.
 
-## 🛠️ 2. 빠른 시작 (Quick Start)
-
-### 1단계: 의존성 설치
-```powershell
-py -3 -m pip install -r requirements.txt
-```
-
-### 2단계: 전사 무결성 검증 실행
-```powershell
-py -3 .agents/scripts/run_checks.py
-```
-
-### 3단계: SQLite 거버넌스 감사 저장소 상태 확인
-```powershell
-py -3 .agents/scripts/log_task.py --status
-```
+4. 🎯 **2대 절대 불변 제약선 & 5대 상호 직교 궤적 (5-Orthogonal Trajectories)**
+   - **[🎯 목적]**과 **[🚫 4대 직교 금기(생체/사회/도덕/비밀)]**를 락인(Lock-in)하고, 서로 겹치지 않는 5가지 독립 서사 궤적(V1~V5)을 동적으로 도출.
 
 ---
 
-## 🧭 3. 디렉터리 구조
+## 🛠️ Tech Stack
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Vite, Zustand, Lucide Icons
+- **Backend**: Node.js, Express, Google Gemini 2.5 Flash API (Multimodal Vision & Stream SSE)
+- **Architecture**: 5D Nonlinear Dynamical State Machine & Sliding Window Token Optimization
 
-```text
-├── 🔴 GEMINI.md                    # 전역 최고 거버넌스 헌법 (Immutable Core)
-├── 👁️ views/                       # 5대 실시간 프로젝트 관측 뷰 (SSOT)
-│   ├── CURRENT_STATE.md            # 현재 진행 페이즈 및 당면 과제
-│   ├── IMPLEMENTATION_STATUS.md    # 컴포넌트별 4단 상태 마커
-│   ├── IMPLEMENTATION_PLAN.md      # 기능 구현 계획서
-│   ├── WALKTHROUGH.md              # 작업 완료 보고 및 AI Proof
-│   └── ARCHITECTURE.md             # 시스템 아키텍처 명세
-├── 📁 src/                         # Clean Architecture 4계층 소스 코드
-│   ├── domain/                     # 순수 불변 비즈니스 엔티티 (의존성 0%)
-│   ├── infrastructure/             # SQLite WAL 저장소 및 리포지토리 어댑터
-│   ├── application/                # 유스케이스 및 서비스 오케스트레이션
-│   └── presentation/               # API 및 CLI 인터페이스
-├── 🧪 tests/                       # 자동화 테스트 슈트
-│   ├── unit/                       # 단위 테스트 (AAA 패턴)
-│   └── e2e/                        # 종단간 격리 시나리오 테스트
-└── 🏛️ .agents/                     # AI 페어 엔지니어링 마스터 거버넌스 코어
+---
+
+## 🚀 Quick Start
+
+### 1. 환경 변수 설정
+`.env.example`을 복사하여 `.env`를 생성하고 Gemini API 키를 입력합니다:
+```bash
+cp .env.example .env
 ```
+
+### 2. 패키지 설치
+```bash
+npm install
+```
+
+### 3. 개발 서버 실행 (프론트엔드 + 백엔드 동시 실행)
+```bash
+npm run dev
+```
+브라우저에서 `http://localhost:3000/`으로 접속하여 플레이할 수 있습니다.
